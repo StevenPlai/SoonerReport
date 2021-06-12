@@ -1,7 +1,7 @@
 library(rvest)
 library(rtweet)
 library(lubridate)
-library(grepl)
+library(tidtverse)
 
 cb22 <- read_html("https://247sports.com/Season/2022-Football/TargetPredictions/")
 
