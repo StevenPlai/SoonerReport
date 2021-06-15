@@ -113,7 +113,7 @@ predictor_info$number <- 1:50
 predictor_info$confidence <- confidence
 cb_list <- left_join(cb_list, predictor_info, by="number") 
 
-new_pred <- cb_list %>% filter(elapsed < 130 & names == Oklahoma) 
+new_pred <- cb_list %>% filter(elapsed < 130 & names == "Oklahoma") 
 
 if(nrow(new_pred)>0) {
   
