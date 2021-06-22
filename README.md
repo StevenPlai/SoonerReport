@@ -1,4 +1,4 @@
-# SoonerReport
+# Sooner Report
 Automated Oklahoma football reports posted directly to Twitter
 
 Current post schedule:
