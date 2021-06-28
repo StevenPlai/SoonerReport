@@ -192,10 +192,6 @@ if(nrow(new_ou)>0) {
     
     token <- create_token(
       app = "SoonerBot",
-      "rv9GhbZ7h78cBJqToYNZbxZTP",
-      "Tv604bevC3uXaobOq7bihCkA21PjUOkvB5ObhxYDYgKVtFWzVk",
-      access_token = "1392790570125479937-LOobHwkoGZRbARnJzt1cymJgtkJhDS",
-      access_secret = "IyVzV0pkApw6LgEiO1aP6jSjby4zT250LleG5YjnynrEG",
       set_renv = F
     )
     
