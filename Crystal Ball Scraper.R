@@ -198,7 +198,7 @@ if(nrow(new_ou)>0) {
     if(is.na(rank)){
       text <-  glue(
         "
-        \U0001f6A8 New #Sooners Crystal Ball
+        \U0001F52E New #Sooners Crystal Ball
         
         2022 {pos}{name}
         {ht} / {wt}
@@ -212,7 +212,7 @@ if(nrow(new_ou)>0) {
         } else{
           text <-  glue(
             "
-            \U0001f6A8 New #Sooners Crystal Ball
+            \U0001F52E New #Sooners Crystal Ball
             
             2022 {star} {pos}{name}
             {ht} / {wt}
