@@ -16,7 +16,10 @@ library(ggpubr)
 
 na_cities <- data.frame()
 
-for(i in 2022:2023)
+now <- ymd_hms(Sys.time())
+now <- format(as.Date(now),'%m/%d/%Y')
+
+for(i in 2022:2025)
 { 
 cycle <- i
 
@@ -45,6 +48,15 @@ location_data <- locations %>% separate(col = city, sep = ",", into = c("city", 
 location_data$state_id <- trimws(location_data$state_id)
 
 geo_data <- left_join(location_data, city_data, by=c("city", "state_id")) 
+old_offers <- read.csv(paste0("~/desktop/Offers/OfferList",i,".csv"))
+new_offers <- anti_join(geo_data, old_offers) %>% mutate(date = now)
+if(nrow(new_offers)>0)
+{
+  runnng_list <- read.csv(paste0("~/desktop/Offers/RunningOfferList",i,".csv"))
+  new_offers <- bind_rows(runnng_list, new_offers)
+  write.csv(new_offers,paste0("~/desktop/Offers/RunningOfferList",i,".csv") )
+}
+write.csv(geo_data, paste0("~/desktop/Offers/OfferList",i,".csv"))
 n_offers <- nrow(geo_data)
 na_cities <- bind_rows(na_cities, geo_data %>% filter(is.na(lng)))
 geo_data <- geo_data %>% group_by(city, state_id) %>% summarise(lat = first(lat), 
@@ -58,8 +70,6 @@ coords <- coords %>% usmap_transform() %>% select(lng = lng.1, lat = lat.1)
 geo_data$lng <- coords$lng
 geo_data$lat <- coords$lat
 
-now <- ymd_hms(Sys.time())
-now <- format(as.Date(now),'%m/%d/%Y')
 
 p <- plot_usmap() +
   geom_point(data = geo_data, aes(x=lng, y=lat, size = offers), 
@@ -107,3 +117,4 @@ post_tweet(
 prev_nas <- read.csv("~/desktop/Offers/na_cities.csv")
 na_cities <- bind_rows(prev_nas, na_cities)
 write.csv(na_cities, "~/desktop/Offers/na_cities.csv")
+
