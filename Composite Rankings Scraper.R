@@ -1,5 +1,6 @@
 library(rvest)
 library(lubridate)
+library(tidyverse)
 
 compteamrank22 <- read_html("https://247sports.com/Season/2022-Football/CompositeTeamRankings/")
 compteamrank23 <- read_html("https://247sports.com/Season/2023-Football/CompositeTeamRankings/")
