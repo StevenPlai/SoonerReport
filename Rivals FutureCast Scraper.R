@@ -6,6 +6,11 @@ library(httr)
 library(jsonlite)
 library(stringr)
 library(logging)
+library(rtweet)
+
+selected_school <- "Oklahoma"
+target_school <- "Oklahoma"
+target_year <- "2022"
 
 loginfo("Starting Rivals FutureCast scraping...")
 
@@ -212,10 +217,17 @@ if (total > 0) {
             {ht} / {wt}
             {hs} ({hometown})
             
-            By: {predictor} ({acc} in 2022)
+            By: {predictor} ({acc}%)
             
             {link}
             ")
+    
+    post_tweet(
+      status = text,
+      media = NULL,
+      token = token
+    )
+    
     loginfo(glue("Tweet {row}/{total} posted"))
   }
   } else {
