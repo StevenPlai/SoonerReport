@@ -298,17 +298,18 @@ if (total > 0) {
     acc <- changed_futurecasts[row, "accuracy"]
     hs <- player_hs[2]
     hometown <- changed_futurecasts[row, "hometown"]
+    og_school <- changed_futurecasts[row, "original_school"]
+    new_school <- changed_futurecasts[row, "forecasted_team"]
     
     text <-  glue(
       "
-      \U0001F52E New #Sooners FutureCast
+      \U000F16A8 #Sooners Recruiting Alert
       
-      {year} {rank}-Star {pos} {name}
+      {predictor} ({acc}%) updates forecast for {year} {rank}-Star {pos} {name} from {og_school} to {new_school}
+      
       {ht} / {wt}
       {hs} ({hometown})
-      
-      By: {predictor} ({acc}%)
-      
+
       {link}
       ")
     
