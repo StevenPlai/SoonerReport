@@ -139,7 +139,7 @@ if(nrow(new_ou)>0) {
     pred <- new_ou %>% slice(i)
     
     name <- pred$name
-    link <- as.character(pred$link)
+    plink <- as.character(pred$link)
     pos <- pred$pos
     rank <- pred$star
     ht <- pred$ht
@@ -149,12 +149,14 @@ if(nrow(new_ou)>0) {
     star <- pred$star
     confidence <- pred$confidence
     
-    player_info <- read_html(link) %>% html_nodes(".upper-cards") %>% html_nodes(".details") %>%
+    forecaster_info <- read_html()
+    
+    player_info <- read_html(plink) %>% html_nodes(".upper-cards") %>% html_nodes(".details") %>%
       html_nodes("li") %>% html_nodes("span") %>% html_text()
     hs <- trimws(player_info[2], which = "both") 
     hometown <- player_info[4]
     
-    player_predictions_link <- read_html(link) %>% html_nodes(".link-block") %>% 
+    player_predictions_link <- read_html(plink) %>% html_nodes(".link-block") %>% 
       html_nodes("a") %>% 
       html_attr("href")
     
@@ -207,7 +209,7 @@ if(nrow(new_ou)>0) {
         By: {predictor} ({acc} in 2022)
         Confidence: {confidence}/10
         
-        {link}
+        {plink}
         ")
         } else{
           text <-  glue(
@@ -221,7 +223,7 @@ if(nrow(new_ou)>0) {
             By: {predictor} ({acc} in 2022)
             Confidence: {confidence}/10
             
-            {link}
+            {plink}
             ")
         }
     
