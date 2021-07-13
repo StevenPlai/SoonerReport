@@ -15,17 +15,14 @@ span <- cb %>%
 image_names<-cb %>% html_nodes("img") %>% html_attr("alt")
 image_height<-cb %>% html_nodes("img") %>% html_attr("height")
 image_class<-cb %>% html_nodes("img") %>% html_attr("class")
-links<-cb %>% html_nodes("a") %>% html_attr("href")
+plinks<-cb %>% html_nodes("a") %>% html_attr("href")
 pred_date<-cb %>% html_elements(".prediction-date") %>% html_text()
 player_names<-cb %>% html_nodes(".name")
 names <- html_children(player_names)
 predictor_names<-cb %>% html_nodes(".predicted-by") %>% html_nodes("a") %>% 
   html_nodes(".jsonly") %>% html_attr("alt")
-predictor_stats <- cb %>% html_nodes(".accuracy") %>% html_nodes("span") %>% html_text()
-p_stats <- data.frame(acc = predictor_stats)
-seq <- seq(to = 150, from = 3, by = 3)
-p_stats <- p_stats[seq, ]
-p_stats <- gsub(" ","",p_stats)
+forecaster_links <- cb %>% html_elements(".predicted-by") %>% html_elements("a") %>% html_attr("href")
+flinks <- data.frame(link = forecaster_links, number = 1:50)
 confidence<-cb %>% html_nodes(".confidence") %>% html_nodes(".confidence-wrap") %>% 
   html_text()
 confidence <- data.frame(confidence <- confidence)
@@ -75,7 +72,7 @@ pred_date <- as.data.frame(pred_date)
 pred_date$number = 1:50
 teams <- left_join(teams, pred_date, by="number")
 
-targets <- data.frame(link = links)
+targets <- data.frame(plink = plinks)
 sep <- targets %>% separate(col = link, into = c("prefix", "body"), sep = 8)
 sep <- sep %>% separate(col = "body", into = c("site", "body"), sep = 9)
 sep <- sep %>% separate(col = "body", into = c("suffix", "body"), sep = 5)
@@ -118,7 +115,7 @@ cb_list$pred_date<- as.numeric(as.character(gsub("-|:| ","",cb_list$pred_date)))
 cb_list$pred_date <- as.numeric(as.character(gsub(".{2}$","",cb_list$pred_date)))
 cb_list <- cb_list %>% mutate(elapsed = now-pred_date)
 cb_list <- left_join(cb_list, player_info, by="number") 
-predictor_info <- data.frame(predictor = predictor_names, acc = p_stats) 
+predictor_info <- data.frame(predictor = predictor_names, flink = flinks) 
 predictor_info$number <- 1:50
 predictor_info$confidence <- confidence
 cb_list <- left_join(cb_list, predictor_info, by="number") 
@@ -139,7 +136,8 @@ if(nrow(new_ou)>0) {
     pred <- new_ou %>% slice(i)
     
     name <- pred$name
-    plink <- as.character(pred$link)
+    plink <- as.character(pred$plink)
+    flink <- 
     pos <- pred$pos
     rank <- pred$star
     ht <- pred$ht
