@@ -73,7 +73,7 @@ pred_date$number = 1:50
 teams <- left_join(teams, pred_date, by="number")
 
 targets <- data.frame(plink = plinks)
-sep <- targets %>% separate(col = link, into = c("prefix", "body"), sep = 8)
+sep <- targets %>% separate(col = plink, into = c("prefix", "body"), sep = 8)
 sep <- sep %>% separate(col = "body", into = c("site", "body"), sep = 9)
 sep <- sep %>% separate(col = "body", into = c("suffix", "body"), sep = 5)
 sep <- sep %>% separate(col = "body", into = c("type", "body"), sep = 6)
@@ -115,8 +115,7 @@ cb_list$pred_date<- as.numeric(as.character(gsub("-|:| ","",cb_list$pred_date)))
 cb_list$pred_date <- as.numeric(as.character(gsub(".{2}$","",cb_list$pred_date)))
 cb_list <- cb_list %>% mutate(elapsed = now-pred_date)
 cb_list <- left_join(cb_list, player_info, by="number") 
-predictor_info <- data.frame(predictor = predictor_names, flink = flinks) 
-predictor_info$number <- 1:50
+predictor_info <- data.frame(predictor = predictor_names, flink = flinks$link, number = 1:50) 
 predictor_info$confidence <- confidence
 cb_list <- left_join(cb_list, predictor_info, by="number") 
 
@@ -137,17 +136,19 @@ if(nrow(new_ou)>0) {
     
     name <- pred$name
     plink <- as.character(pred$plink)
-    flink <- 
+    flink <- as.character(pred$flink)
     pos <- pred$pos
     rank <- pred$star
     ht <- pred$ht
     wt <- pred$wt
     predictor <- pred$predictor
-    acc <- pred$acc
     star <- pred$star
     confidence <- pred$confidence
     
-    forecaster_info <- read_html()
+    forecaster_info <- read_html(flink) %>% html_nodes(".picks") %>% 
+      html_nodes("li") %>% html_nodes("span") %>% html_text()
+    
+    acc <- round(as.numeric(sub("%", "",forecaster_info[2],fixed=TRUE))/100, digits = 3)*100
     
     player_info <- read_html(plink) %>% html_nodes(".upper-cards") %>% html_nodes(".details") %>%
       html_nodes("li") %>% html_nodes("span") %>% html_text()
@@ -204,7 +205,7 @@ if(nrow(new_ou)>0) {
         {ht} / {wt}
         {{hs} ({hometown})
         
-        By: {predictor} ({acc} in 2022)
+        By: {predictor} ({acc}%)
         Confidence: {confidence}/10
         
         {plink}
@@ -218,7 +219,7 @@ if(nrow(new_ou)>0) {
             {ht} / {wt}
             {hs} ({hometown})
             
-            By: {predictor} ({acc} in 2022)
+            By: {predictor} ({acc}%)
             Confidence: {confidence}/10
             
             {plink}
