@@ -328,7 +328,7 @@ if (total > 0) {
     if(rank == 0){
       text <-  glue(
         "
-        \U000F16A8 #Sooners Recruiting Alert
+        \U0001f6A8 #Sooners Recruiting Alert
         
         {title} {predictor} ({acc}%) updates forecast for {year} {pos} {name} from {og_school} to {new_school}
         
@@ -339,7 +339,7 @@ if (total > 0) {
     } else{
       text <-  glue(
         "
-        \U000F16A8 #Sooners Recruiting Alert
+        \U0001f6A8 #Sooners Recruiting Alert
         
         {title} {predictor} ({acc}%) updates forecast for {year} {rank}-Star {pos} {name} from {og_school} to {new_school}
         
