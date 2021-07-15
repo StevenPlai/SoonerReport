@@ -22,7 +22,7 @@ pred_date<-cb %>% html_elements(".prediction-date") %>% html_text()
 player_names<-cb %>% html_nodes(".name")
 names <- html_children(player_names)
 predictor_names<-cb %>% html_nodes(".predicted-by") %>% html_nodes("a") %>% 
-  html_nodes(".jsonly") %>% html_attr("alt")
+  html_nodes("span") %>% html_text()
 forecaster_links <- cb %>% html_elements(".predicted-by") %>% html_elements("a") %>% html_attr("href")
 flinks <- data.frame(link = forecaster_links, number = 1:50)
 confidence<-cb %>% html_nodes(".confidence") %>% html_nodes(".confidence-wrap") %>% 
@@ -117,7 +117,11 @@ cb_list$pred_date<- as.numeric(as.character(gsub("-|:| ","",cb_list$pred_date)))
 cb_list$pred_date <- as.numeric(as.character(gsub(".{2}$","",cb_list$pred_date)))
 cb_list <- cb_list %>% mutate(elapsed = now-pred_date)
 cb_list <- left_join(cb_list, player_info, by="number") 
-predictor_info <- data.frame(predictor = predictor_names, flink = flinks$link, number = 1:50) 
+seqA <- seq(1,99, by = 2)
+seqB <- seq(2,100, by=2)
+predictor_info <- data.frame(predictor = predictor_names[seqA],
+                             title = predictor_names[seqB],
+                             flink = flinks$link, number = 1:50) 
 predictor_info$confidence <- confidence
 cb_list <- left_join(cb_list, predictor_info, by="number") 
 
@@ -144,6 +148,7 @@ if(nrow(new_ou)>0) {
     ht <- pred$ht
     wt <- pred$wt
     predictor <- pred$predictor
+    title <- pred$title
     star <- pred$star
     confidence <- pred$confidence
     
@@ -207,7 +212,7 @@ if(nrow(new_ou)>0) {
         {ht} / {wt}
         {{hs} ({hometown})
         
-        By: {predictor} ({acc}%)
+        By: {title} {predictor} ({acc}%)
         Confidence: {confidence}/10
         
         {plink}
@@ -221,7 +226,7 @@ if(nrow(new_ou)>0) {
             {ht} / {wt}
             {hs} ({hometown})
             
-            By: {predictor} ({acc}%)
+            By: {title} {predictor} ({acc}%)
             Confidence: {confidence}/10
             
             {plink}
