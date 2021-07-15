@@ -71,6 +71,7 @@ loginfo(glue("Found {nrow(futurecasts)} recruit futurecast rows,."))
 loginfo(glue("Cleaning and filtering based on criteria: school ({selected_school}) and year ({target_year})"))
 
 now <- now(tz = "UTC")
+
 futurecasts <- futurecasts %>%
   mutate(
     forecaster = trim(forecaster),
@@ -120,15 +121,15 @@ strip_suffix <- function(name) {
 
 query_croots <- function(name, year) {
   body <- paste0("{
-        \"search\": {
-            \"member\": \"Prospect\",
-            \"query\": \",",strip_suffix(name),",\",
-            \"sport\": \"Football\",
-            \"page_number\": \"1\",
-            \"page_size\": \"50\",
-            \"recruit_year\": \"",year,"\"
-        }
-    }")
+                 \"search\": {
+                 \"member\": \"Prospect\",
+                 \"query\": \",",strip_suffix(name),",\",
+                 \"sport\": \"Football\",
+                 \"page_number\": \"1\",
+                 \"page_size\": \"50\",
+                 \"recruit_year\": \"",year,"\"
+}
+}")
   croot_req <- POST("https://n.rivals.com/api/v1/people", add_headers(
     "User-Agent"="Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:85.0) Gecko/20100101 Firefox/85.0",
     Accept="application/json, text/plain, */*",
@@ -140,7 +141,7 @@ query_croots <- function(name, year) {
     "Connection"="keep-alive",
     "Cookie"="A1=d=AQABBL_NHmACEKNsUb5rZatSKxxQNn_WTEQFEgEBAQEfIGAoYAAAAAAA_SMAAA&S=AQAAAkKziEj7gaF2mOKKRDUJWqg; A3=d=AQABBL_NHmACEKNsUb5rZatSKxxQNn_WTEQFEgEBAQEfIGAoYAAAAAAA_SMAAA&S=AQAAAkKziEj7gaF2mOKKRDUJWqg; A1S=d=AQABBL_NHmACEKNsUb5rZatSKxxQNn_WTEQFEgEBAQEfIGAoYAAAAAAA_SMAAA&S=AQAAAkKziEj7gaF2mOKKRDUJWqg; GUC=AQEBAQFgIB9gKEId1wSk; XSRF-TOKEN=JWSTp21Yj1wpNjaVz7W7x%2FwNgbUCNxLTFP0oHbOtYWUXdXMt2hvX%2BNQ3ejC8as5FAb1RE%2FKwiH3bY4SlsEl%2BSg%3D%3D; _rivalry_session_v2=ZWZZQVZSQVh3ZnNaSWxaZlgwNU95aXV3a3VFREM2SE9iME9wZG4yaERvd0hHNjJOekhGZG1BOHo4WDM5OFdCSnFCczRWQ0hKelRzMWJna1NDZXV3MndjNHhaZlU1S0ZEdmJFaTVUR1doQ1RHdUJhRlQxUis2cWRBblUyVlhKcXVnVHE0aFlDODZscVMvQWxwRWxQUmpwUGk4QWdXRWUwdTlIZ2lxUk5YdzlJa3RxVVdac3lBdGRiQkxBOEErYXl2djNGT1dXa1g0c3ozSHJJdDZyMkNFZmd0eDZhUmE5TVFHU2RLc045RHlqMFFjUjJvbzVVOU9MNG9ORU9qdHY4K21wTjdtVlNVVU1KWTFNWlY0MUp6eDY3cnNZMHdNYVg5aGQ5TUZoM2doZnZEK1NvWkRkNjBiVVFlYmlyTzVqb21WVFlRRXlmWEVZSmtHZTVsc0tENkdBPT0tLVNNQmpEbzFNMGI1blVuKzVyR1Q3SFE9PQ%3D%3D--0947bcffa7fd9b9703f5522cb9afa8fac7d83254; GUCS=Ae_tyY5k; ywandp=10002066977754%3A1333922239; _cb_ls=1; _ga=GA1.2.770716812.1612631490; _gid=GA1.2.1018170693.1612631490; _gat=1; A1=d=AQABBL_NHmACEKNsUb5rZatSKxxQNn_WTEQFEgEBAQEfIGAoYAAAAAAA_SMAAA&S=AQAAAkKziEj7gaF2mOKKRDUJWqg; A1S=d=AQABBL_NHmACEKNsUb5rZatSKxxQNn_WTEQFEgEBAQEfIGAoYAAAAAAA_SMAAA&S=AQAAAkKziEj7gaF2mOKKRDUJWqg; A3=d=AQABBL_NHmACEKNsUb5rZatSKxxQNn_WTEQFEgEBAQEfIGAoYAAAAAAA_SMAAA&S=AQAAAkKziEj7gaF2mOKKRDUJWqg; GUC=AQEBAQFgIB9gKEId1wSk; _rivalry_session_v2=QW9Cckk0MGF3bnZtSFBLMFVhNlp3M281bFkzajM0dW9KWjh5clJEUWNNVytqU0w5dDg4OGJFY0NiMDNLZ0N1b3g2NEhWcVNvWm40QVdDNmlROGozMXJGazdMQmsrWUo0ZitnZkhHSFcweERuQkwxNUdQdmFESng0bTdPZlJPcTlhYy94QndBNlNWdERSMzRMVWtSbHFxT1l1VlB3eC9TbGN0OFJId2R0S1AwRE16R09GcDArbDVSUVFWcldxQzFoekJibkxNWjVQOVlRZS9vZVBkcTVpWkFqYUFIRkhLMVluaktxdllUNDRUWGw2SjdteDR3K2VHbmk0TytGWFZHdzVJaUNhanN3OFNlbDlxVGMxVEFNeXUrWFVORmt2N0ZkYnVBRUVEaEtJRTBjbHUzSUxiemRiZU8wN3hqZGJDcFA4Nnk3eDJHOGVRVzdmb2pRYUNNNDJnPT0tLXJ4c1ZUUjFXY0dqUHltWE1sSitjUHc9PQ%3D%3D--ab9e9cd73c80953acce2a86a86eb53ab3b0bfabf",
     "TE"="Trailers"
-  ), body = body, encode = "json")
+    ), body = body, encode = "json")
   
   result <- content(croot_req, "text")
   result <- fromJSON(result)$people
@@ -156,6 +157,8 @@ get_croot_info <- function(name, player_id, year) {
     head(1)
   return(result)
 }
+
+#Tweet new FCs
 
 expanded_data <- data.frame()
 player_slim_list <- projected_futurecasts %>%
@@ -198,11 +201,11 @@ if (total > 0) {
     player_profile <- read_html(link) 
     
     player_hs <- player_profile %>% html_nodes("div.new-prospect-profile > 
-                                                    div.prospect-personal-information > 
-                                                    div.location-block > 
-                                                    div.right-personal-information > 
-                                                    a > .prospect-small-information > 
-                                                    .vital-line-location") %>%
+                                               div.prospect-personal-information > 
+                                               div.location-block > 
+                                               div.right-personal-information > 
+                                               a > .prospect-small-information > 
+                                               .vital-line-location") %>%
       html_text()
     
     name  <- trim(projected_futurecasts[row, "recruit"])
@@ -212,22 +215,23 @@ if (total > 0) {
     ht <- fixHeight(projected_futurecasts[row, "height"])
     wt <- projected_futurecasts[row, "weight"]
     predictor <- projected_futurecasts[row, "forecaster"]
+    title <- projected_futurecasts[row, "title"]
     acc <- projected_futurecasts[row, "accuracy"]
     hs <- player_hs[2]
     hometown <- projected_futurecasts[row, "hometown"]
     
     text <-  glue(
       "
-            \U0001F52E New #Sooners FutureCast
-            
-            {year} {rank}-Star {pos} {name}
-            {ht} / {wt}
-            {hs} ({hometown})
-            
-            By: {predictor} ({acc}%)
-            
-            {link}
-            ")
+      \U0001F52E New #Sooners FutureCast
+      
+      {year} {rank}-Star {pos} {name}
+      {ht} / {wt}
+      {hs} ({hometown})
+      
+      By: {title} {predictor} ({acc}%)
+      
+      {link}
+      ")
     
     post_tweet(
       status = text,
@@ -237,10 +241,12 @@ if (total > 0) {
     
     loginfo(glue("Tweet {row}/{total} posted"))
   }
-  } else {
+} else {
   loginfo(glue("Did not have any FutureCasts to find expanded info for, returning empty dataframe"))
   futurecasts <- data.frame()
-  }
+}
+
+#Tweet changed FCs
 
 expanded_data <- data.frame()
 player_slim_list <- changed_futurecasts %>%
@@ -297,6 +303,7 @@ if (total > 0) {
     ht <- fixHeight(changed_futurecasts[row, "height"])
     wt <- changed_futurecasts[row, "weight"]
     predictor <- changed_futurecasts[row, "forecaster"]
+    title <- changed_futurecasts[row, "title"]
     acc <- changed_futurecasts[row, "accuracy"]
     hs <- player_hs[2]
     hometown <- changed_futurecasts[row, "hometown"]
@@ -307,11 +314,10 @@ if (total > 0) {
       "
       \U000F16A8 #Sooners Recruiting Alert
       
-      {predictor} ({acc}%) updates forecast for {year} {rank}-Star {pos} {name} from {og_school} to {new_school}
+      {title} {predictor} ({acc}%) updates forecast for {year} {rank}-Star {pos} {name} from {og_school} to {new_school}
       
       {ht} / {wt}
       {hs} ({hometown})
-
       {link}
       ")
     
