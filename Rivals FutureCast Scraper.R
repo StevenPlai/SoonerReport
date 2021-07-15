@@ -74,6 +74,7 @@ futurecasts <- futurecasts %>%
   mutate(
     forecaster = trim(forecaster),
     recruit = trim(recruit),
+    recruit = gsub("\\s+"," ",recruit),
     time_since = gsub(" ago", "", time_since),
     player_id = as.numeric(sub(".*-", "", profile_url)),
     year = str_extract(full_text, "\\((\\d{4}),"),
