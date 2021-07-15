@@ -4,9 +4,11 @@ library(rtweet)
 library(lubridate)
 library(glue)
 
+target_year <- 2023
+
 options(scipen = 999)
 
-cb <- read_html("https://247sports.com/Season/2022-Football/TargetPredictions/") 
+cb <- read_html(paste0("https://247sports.com/Season/",target_year,"-Football/TargetPredictions/")) 
 
 span <- cb %>% 
   html_elements("span") %>% 
@@ -119,13 +121,13 @@ predictor_info <- data.frame(predictor = predictor_names, flink = flinks$link, n
 predictor_info$confidence <- confidence
 cb_list <- left_join(cb_list, predictor_info, by="number") 
 
-running_list <- read.csv("/Users/andersoninman/desktop/CB Scraper/RunningCBList2022.csv")
+running_list <- read.csv(paste0("/Users/andersoninman/desktop/CB Scraper/RunningCBList",target_year,".csv"))
 
-new_pred <- anti_join(cb_list, running_list, by=c("names", "pred_date", "link"))
+new_pred <- anti_join(cb_list, running_list, by=c("names", "pred_date", "name"))
 
 new_ou <- new_pred %>% filter(names == "Oklahoma") 
 
-write.csv(cb_list, "/Users/andersoninman/desktop/CB Scraper/RunningCBList2022.csv",
+write.csv(cb_list, paste0("/Users/andersoninman/desktop/CB Scraper/RunningCBList",target_year,".csv"),
           row.names = F)
 
 if(nrow(new_ou)>0) {
@@ -201,7 +203,7 @@ if(nrow(new_ou)>0) {
         "
         \U0001F52E New #Sooners Crystal Ball
         
-        2022 {pos}{name}
+        {target_year} {pos}{name}
         {ht} / {wt}
         {{hs} ({hometown})
         
@@ -215,7 +217,7 @@ if(nrow(new_ou)>0) {
             "
             \U0001F52E New #Sooners Crystal Ball
             
-            2022 {star} {pos}{name}
+            {target_year} {star} {pos}{name}
             {ht} / {wt}
             {hs} ({hometown})
             
