@@ -198,11 +198,6 @@ if(nrow(new_ou)>0) {
       scale_y_continuous(limits = c(0,max(player_predictions$cume))) +
       scale_x_datetime(limits = c(ymd_hm("2021-02-01 01:01"), max(player_predictions$time)))
     
-    token <- create_token(
-      app = "SoonerBot",
-      set_renv = F
-    )
-    
     if(is.na(rank)){
       text <-  glue(
         "
