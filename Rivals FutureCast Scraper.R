@@ -90,7 +90,7 @@ futurecasts <- left_join(futurecasts, forecasters, by = c("forecaster"="full_nam
 
 running_list <- read.csv("~/Desktop/RFScraper/running_list.csv")
 
-new_futurecasts <- anti_join(running_list, futurecasts, by=c("player_id", "year"))
+new_futurecasts <- anti_join(futurecasts, running_list, by="full_text")
 
 write.csv(futurecasts, "~/Desktop/RFScraper/running_list.csv")
 
