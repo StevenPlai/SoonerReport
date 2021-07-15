@@ -220,18 +220,33 @@ if (total > 0) {
     hs <- player_hs[2]
     hometown <- projected_futurecasts[row, "hometown"]
     
-    text <-  glue(
-      "
-      \U0001F52E New #Sooners FutureCast
-      
-      {year} {rank}-Star {pos} {name}
-      {ht} / {wt}
-      {hs} ({hometown})
-      
-      By: {title} {predictor} ({acc}%)
-      
-      {link}
-      ")
+    if(rank == 0){
+      text <-  glue(
+        "
+        \U0001F52E New #Sooners FutureCast
+        
+        {year} {pos} {name}
+        {ht} / {wt}
+        {hs} ({hometown})
+        
+        By: {title} {predictor} ({acc}%)
+        
+        {link}
+        ")
+    } else{
+      text <-  glue(
+        "
+        \U0001F52E New #Sooners FutureCast
+        
+        {year} {rank}-Star {pos} {name}
+        {ht} / {wt}
+        {hs} ({hometown})
+        
+        By: {title} {predictor} ({acc}%)
+        
+        {link}
+        ")
+    }
     
     post_tweet(
       status = text,
@@ -310,16 +325,29 @@ if (total > 0) {
     og_school <- changed_futurecasts[row, "original_school"]
     new_school <- changed_futurecasts[row, "forecasted_team"]
     
-    text <-  glue(
-      "
-      \U000F16A8 #Sooners Recruiting Alert
-      
-      {title} {predictor} ({acc}%) updates forecast for {year} {rank}-Star {pos} {name} from {og_school} to {new_school}
-      
-      {ht} / {wt}
-      {hs} ({hometown})
-      {link}
-      ")
+    if(rank == 0){
+      text <-  glue(
+        "
+        \U000F16A8 #Sooners Recruiting Alert
+        
+        {title} {predictor} ({acc}%) updates forecast for {year} {pos} {name} from {og_school} to {new_school}
+        
+        {ht} / {wt}
+        {hs} ({hometown})
+        {link}
+        ")
+    } else{
+      text <-  glue(
+        "
+        \U000F16A8 #Sooners Recruiting Alert
+        
+        {title} {predictor} ({acc}%) updates forecast for {year} {rank}-Star {pos} {name} from {og_school} to {new_school}
+        
+        {ht} / {wt}
+        {hs} ({hometown})
+        {link}
+        ")
+    }
     
     post_tweet(
       status = text,
