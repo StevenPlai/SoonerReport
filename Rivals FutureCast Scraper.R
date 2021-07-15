@@ -21,7 +21,8 @@ fixHeight <- function(x) paste0(floor(x/12),"-",x-(floor(x/12)*12))
 
 splitJoin <- function(x) strsplit(x, split="\\s") %>% trim() %>% .[lapply(., length) > 0] %>% unlist() %>% paste()
 
-rf_html <- read_html("https://n.rivals.com/futurecast")
+target_page <- tolower(selected_school)
+rf_html <- read_html(paste0("https://",target_page,".rivals.com/futurecast"))
 
 # ----- FutureCast Forecasters -----
 loginfo("Looking for Forecaster information...")
