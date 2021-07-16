@@ -52,9 +52,9 @@ old_offers <- read.csv(paste0("~/desktop/Offers/OfferList",i,".csv"))
 new_offers <- anti_join(geo_data, old_offers) %>% mutate(date = now)
 if(nrow(new_offers)>0)
 {
-  runnng_list <- read.csv(paste0("~/desktop/Offers/RunningOfferList",i,".csv"))
+  runnng_list <- read.csv(paste0("~/desktop/Offers/DatedOfferList",i,".csv"))
   new_offers <- bind_rows(runnng_list, new_offers)
-  write.csv(new_offers,paste0("~/desktop/Offers/RunningOfferList",i,".csv") )
+  write.csv(new_offers,paste0("~/desktop/Offers/DatedOfferList",i,".csv") )
 }
 write.csv(geo_data, paste0("~/desktop/Offers/OfferList",i,".csv"))
 n_offers <- nrow(geo_data)
