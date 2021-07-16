@@ -3,4 +3,4 @@ Automated Oklahoma football reports posted directly to Twitter
 
 Current post schedule:
 
-- Tweets each time OU receives a new 247Sports Crystal Ball
+- Tweets each time OU receives a new 247Sports Crystal Ball or Rivals FutreCast
