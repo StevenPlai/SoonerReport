@@ -160,7 +160,7 @@ n_futurecasts <- left_join(futurecasts, forecasters, by = c("forecaster"="full_n
 futurecasts <- bind_rows(t_futurecasts, n_futurecasts) %>% group_by(full_text, time_since) %>%
   summarise(across(forecaster:accuracy,first)) %>% filter(selected_school == forecasted_team |
                                                           selected_school == original_school) %>%
-  select(colnames(t_futurecasts))
+  select(colnames(t_futurecasts)) %>% ungroup()
 
 running_list <- read.csv("~/Desktop/RFScraper/running_list.csv")
 
@@ -267,7 +267,7 @@ if (total > 0) {
   loginfo(glue("Tweeting New FutureCasts"))
   
   for (row in 1:total) {
-    link <- projected_futurecasts[row, "profile_url"]
+    link <- as.character(projected_futurecasts[row, "profile_url"])
     
     player_profile <- read_html(link) 
     
@@ -370,7 +370,7 @@ if (total > 0) {
   loginfo(glue("Tweeting New FutureCasts"))
   
   for (row in 1:total) {
-    link <- changed_futurecasts[row, "profile_url"]
+    link <- as.character(changed_futurecasts[row, "profile_url"])
     
     player_profile <- read_html(link) 
     
