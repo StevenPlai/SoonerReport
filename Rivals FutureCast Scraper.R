@@ -22,14 +22,16 @@ fixHeight <- function(x) paste0(floor(x/12),"-",x-(floor(x/12)*12))
 splitJoin <- function(x) strsplit(x, split="\\s") %>% trim() %>% .[lapply(., length) > 0] %>% unlist() %>% paste()
 
 target_page <- tolower(selected_school)
-rf_html <- read_html(paste0("https://",target_page,".rivals.com/futurecast"))
+team_html <- read_html(paste0("https://",target_page,".rivals.com/futurecast"))
 
-# ----- FutureCast Forecasters -----
-loginfo("Looking for Forecaster information...")
-forecast_nodes <- rf_html %>%
+main_html <- read_html("https://n.rivals.com/futurecast")
+
+# ----- FutureCast Forecasters Team -----
+loginfo("Looking for Forecaster information on team page...")
+forecast_nodes <- team_html %>%
   html_nodes("[class^=\"ForecasterThumbnail_forecasterInformation__\"]")
 
-loginfo(glue("Found {length(forecast_nodes)} forecaster nodes. Parsing..."))
+loginfo(glue("Found {length(forecast_nodes)} forecaster nodes on team page. Parsing..."))
 forecasters <- data.frame(
   title = column(forecast_nodes, "[class^=\"ForecasterThumbnail_forecasterTitle__\"]"),
   first_name = column(forecast_nodes, "[class^=\"Link_link__1xDdm ForecasterThumbnail_forecasterName__\"] > div:nth_child(1)"),
@@ -38,7 +40,7 @@ forecasters <- data.frame(
   stringsAsFactors = FALSE
 )
 
-loginfo(glue("Parsed {nrow(forecasters)} forecaster rows. Cleaning..."))
+loginfo(glue("Parsed {nrow(forecasters)} forecaster rows from team page. Cleaning..."))
 forecasters <- forecasters %>%
   mutate(
     title = trim(title),
@@ -49,12 +51,12 @@ forecasters <- forecasters %>%
   ) %>%
   select(full_name, title, accuracy)
 
-loginfo(glue("Found/parsed/cleaned {nrow(forecasters)} forecaster rows"))
+loginfo(glue("Found/parsed/cleaned {nrow(forecasters)} forecaster rows from team page"))
 
-# ----- FutureCasts -----
-loginfo(glue("Looking for recruit futurecast nodes..."))
+# ----- FutureCasts Team -----
+loginfo(glue("Looking for recruit futurecast nodes on team page..."))
 
-fc_nodes <- rf_html %>%
+fc_nodes <- team_html %>%
   html_nodes("[class^=\"ForecastActivity_forecastActivity__\"] > [class^=\"ForecastActivity_activityText__\"]")
 
 loginfo(glue("Found {length(fc_nodes)} recruit futurecast nodes, parsing..."))
@@ -67,8 +69,7 @@ futurecasts <- data.frame(
   stringsAsFactors = FALSE
 )
 
-loginfo(glue("Found {nrow(futurecasts)} recruit futurecast rows,."))
-loginfo(glue("Cleaning and filtering based on criteria: school ({selected_school}) and year ({target_year})"))
+loginfo(glue("Found {nrow(futurecasts)} recruit futurecast rows on team page"))
 
 now <- now(tz = "UTC")
 
@@ -89,7 +90,77 @@ futurecasts <- futurecasts %>%
     update = if_else(grepl("updates", full_text, fixed = T), 1, 0),
     original_school = if_else(update == 0, "NA", str_extract(full_text, "(?<=from\\s)\\w+")))
 
-futurecasts <- left_join(futurecasts, forecasters, by = c("forecaster"="full_name"))
+t_futurecasts <- left_join(futurecasts, forecasters, by = c("forecaster"="full_name"))
+
+# ----- FutureCast Forecasters National -----
+loginfo("Looking for Forecaster information on national page...")
+forecast_nodes <- main_html %>%
+  html_nodes("[class^=\"ForecasterThumbnail_forecasterInformation__\"]")
+
+loginfo(glue("Found {length(forecast_nodes)} forecaster nodes on national page. Parsing..."))
+forecasters <- data.frame(
+  title = column(forecast_nodes, "[class^=\"ForecasterThumbnail_forecasterTitle__\"]"),
+  first_name = column(forecast_nodes, "[class^=\"Link_link__1xDdm ForecasterThumbnail_forecasterName__\"] > div:nth_child(1)"),
+  last_name = column(forecast_nodes, "[class^=\"Link_link__1xDdm ForecasterThumbnail_forecasterName__\"] > div:nth_child(2)"),
+  accuracy = column(forecast_nodes, "[class^=\"ForecasterThumbnail_forecasterAccuracy__\"]"),
+  stringsAsFactors = FALSE
+)
+
+loginfo(glue("Parsed {nrow(forecasters)} forecaster rows from national page. Cleaning..."))
+forecasters <- forecasters %>%
+  mutate(
+    title = trim(title),
+    first_name = trim(first_name),
+    last_name = trim(last_name),
+    full_name = glue("{first_name} {last_name}"),
+    accuracy = as.numeric(gsub("% accuracy", "", accuracy))
+  ) %>%
+  select(full_name, title, accuracy)
+
+loginfo(glue("Found/parsed/cleaned {nrow(forecasters)} forecaster rows from national page"))
+
+# ----- FutureCasts National -----
+loginfo(glue("Looking for recruit futurecast nodes on national page..."))
+
+fc_nodes <- main_html %>%
+  html_nodes("[class^=\"ForecastActivity_forecastActivity__\"] > [class^=\"ForecastActivity_activityText__\"]")
+
+loginfo(glue("Found {length(fc_nodes)} recruit futurecast nodes, parsing..."))
+futurecasts <- data.frame(
+  forecaster = column(fc_nodes, "[class^=\"ForecastActivity_forecastText__\"] > b:nth-child(1)"),
+  recruit = column(fc_nodes, "[class^=\"ForecastActivity_forecastText__\"] > b:nth_child(2)"),
+  profile_url = fc_nodes %>% html_node("[class^=\"ForecastActivity_forecastText__\"] > b:nth_child(2) > a") %>% html_attr('href'),
+  full_text = column(fc_nodes, "[class^=\"ForecastActivity_forecastText__\"]"),
+  time_since = column(fc_nodes, "[class^=\"ForecastActivity_forecastTime__\"]"),
+  stringsAsFactors = FALSE
+)
+
+loginfo(glue("Found {nrow(futurecasts)} recruit futurecast rows on national page,."))
+loginfo(glue("Cleaning and filtering based on criteria: school ({selected_school})"))
+
+futurecasts <- futurecasts %>%
+  mutate(
+    forecaster = trim(forecaster),
+    recruit = trim(recruit),
+    recruit = gsub("\\s+"," ",recruit),
+    time_since = gsub(" ago", "", time_since),
+    player_id = as.numeric(sub(".*-", "", profile_url)),
+    year = str_extract(full_text, "\\((\\d{4}),"),
+    year = sub("\\D","", year),
+    year = sub(",","", year),
+    year = as.integer(year),
+    forecasted_team = str_extract(full_text, "to (.*)\\."),
+    forecasted_team = sub("to ","", forecasted_team),
+    forecasted_team = sub("\\.","", forecasted_team),
+    update = if_else(grepl("updates", full_text, fixed = T), 1, 0),
+    original_school = if_else(update == 0, "NA", str_extract(full_text, "(?<=from\\s)\\w+")))
+
+n_futurecasts <- left_join(futurecasts, forecasters, by = c("forecaster"="full_name"))
+
+futurecasts <- bind_rows(t_futurecasts, n_futurecasts) %>% group_by(full_text, time_since) %>%
+  summarise(across(forecaster:accuracy,first)) %>% filter(selected_school == forecasted_team |
+                                                          selected_school == original_school) %>%
+  select(colnames(t_futurecasts))
 
 running_list <- read.csv("~/Desktop/RFScraper/running_list.csv")
 
