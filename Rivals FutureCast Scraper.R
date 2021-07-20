@@ -87,7 +87,9 @@ futurecasts <- futurecasts %>%
     forecasted_team = sub("to ","", forecasted_team),
     forecasted_team = sub("\\.","", forecasted_team),
     update = if_else(grepl("updates", full_text, fixed = T), 1, 0),
-    original_school = if_else(update == 0, "NA", str_extract(full_text, "(?<=from\\s)\\w+")))
+    original_school = if_else(update == 0, "NA", str_extract(full_text, "from (.*)\\ to")),
+    original_school = sub(" to","", original_school),
+    original_school = sub("from ","", original_school))
 
 t_futurecasts <- left_join(futurecasts, forecasters, by = c("forecaster"="full_name"))
 
@@ -152,7 +154,9 @@ futurecasts <- futurecasts %>%
     forecasted_team = sub("to ","", forecasted_team),
     forecasted_team = sub("\\.","", forecasted_team),
     update = if_else(grepl("updates", full_text, fixed = T), 1, 0),
-    original_school = if_else(update == 0, "NA", str_extract(full_text, "(?<=from\\s)\\w+")))
+    original_school = if_else(update == 0, "NA", str_extract(full_text, "from (.*)\\ to")),
+    original_school = sub(" to","", original_school),
+    original_school = sub("from ","", original_school))
 
 n_futurecasts <- left_join(futurecasts, forecasters, by = c("forecaster"="full_name"))
 
