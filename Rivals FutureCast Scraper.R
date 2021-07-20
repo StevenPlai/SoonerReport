@@ -8,7 +8,6 @@ library(stringr)
 library(logging)
 library(rtweet)
 
-selected_school <- "Oklahoma"
 target_school <- "Oklahoma"
 target_year <- "2022"
 
@@ -21,7 +20,7 @@ fixHeight <- function(x) paste0(floor(x/12),"-",x-(floor(x/12)*12))
 
 splitJoin <- function(x) strsplit(x, split="\\s") %>% trim() %>% .[lapply(., length) > 0] %>% unlist() %>% paste()
 
-target_page <- tolower(selected_school)
+target_page <- tolower(target_school)
 team_html <- read_html(paste0("https://",target_page,".rivals.com/futurecast"))
 
 main_html <- read_html("https://n.rivals.com/futurecast")
@@ -136,7 +135,7 @@ futurecasts <- data.frame(
 )
 
 loginfo(glue("Found {nrow(futurecasts)} recruit futurecast rows on national page,."))
-loginfo(glue("Cleaning and filtering based on criteria: school ({selected_school})"))
+loginfo(glue("Cleaning and filtering based on criteria: school ({target_school})"))
 
 futurecasts <- futurecasts %>%
   mutate(
@@ -158,8 +157,8 @@ futurecasts <- futurecasts %>%
 n_futurecasts <- left_join(futurecasts, forecasters, by = c("forecaster"="full_name"))
 
 futurecasts <- bind_rows(t_futurecasts, n_futurecasts) %>% group_by(full_text, time_since) %>%
-  summarise(across(forecaster:accuracy,first)) %>% filter(selected_school == forecasted_team |
-                                                          selected_school == original_school) %>%
+  summarise(across(forecaster:accuracy,first)) %>% filter(target_school == forecasted_team |
+                                                          target_school == original_school) %>%
   select(colnames(t_futurecasts)) %>% ungroup()
 
 running_list <- read.csv("~/Desktop/RFScraper/running_list.csv")
@@ -168,9 +167,9 @@ new_futurecasts <- anti_join(futurecasts, running_list, by="full_text")
 
 write.csv(futurecasts, "~/Desktop/RFScraper/running_list.csv")
 
-projected_futurecasts <- new_futurecasts %>% filter(selected_school == forecasted_team)
+projected_futurecasts <- new_futurecasts %>% filter(target_school == forecasted_team)
 
-changed_futurecasts <- new_futurecasts %>% filter(selected_school == original_school)
+changed_futurecasts <- new_futurecasts %>% filter(target_school == original_school)
 
 loginfo(glue("Found {nrow(projected_futurecasts)} New FutureCasts and {nrow(changed_futurecasts)} Changed FutureCasts"))
 
