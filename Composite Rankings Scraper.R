@@ -1,6 +1,8 @@
-library(rvest)
-library(lubridate)
-library(tidyverse)
+library(rvest, warn.conflicts = F)
+library(lubridate, warn.conflicts = F)
+library(tidyverse, warn.conflicts = F)
+library(logging, warn.conflicts = F)
+library(glue, warn.conflicts = F)
 
 compteamrank <- read_html("https://247sports.com/Season/2022-Football/CompositeTeamRankings/")
 
@@ -22,8 +24,8 @@ teams <- compteamrank %>%
 
 time <- Sys.time()
 
-team_rankings <- data.frame(team = teams22,
-                            rating = as.double(ratings22),
+team_rankings <- data.frame(team = teams,
+                            rating = as.double(ratings),
                             time = time)
 
 team_rankings <- team_rankings %>% group_by(time) %>% mutate(rank = round(51-rank(rating), digits = 0))
@@ -36,4 +38,4 @@ running <- bind_rows(running,team_rankings)
 write.csv(running, "~/desktop/Composite Scrapes/RunningCompositeRankings2022.csv",
           row.names = F)
 
-print(paste0("running total = ",nrow(running22)))
+loginfo(glue("Added {nrow(team_rankings)} obs to running list"))
