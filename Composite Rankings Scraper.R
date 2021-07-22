@@ -20,13 +20,16 @@ teams <- compteamrank %>%
   html_elements(".rankings-page__name-link") %>% 
   html_text2()
 
-date <- Sys.Date()
+time <- Sys.time()
 
 team_rankings <- data.frame(team = teams22,
                             rating = as.double(ratings22),
-                            date = date)
+                            time = time)
+
+team_rankings <- team_rankings %>% group_by(time) %>% mutate(rank = round(51-rank(rating), digits = 0))
 
 running <- read.csv("~/desktop/Composite Scrapes/RunningCompositeRankings2022.csv")
+running$time <- ymd_hms(running$time, tz = "America/Chicago")
 
 running <- bind_rows(running,team_rankings)
 
