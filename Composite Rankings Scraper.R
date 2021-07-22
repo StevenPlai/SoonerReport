@@ -27,15 +27,18 @@ time <- gsub(" |:","",time)
 time <- gsub("-","",time)
 
 team_rankings22 <- data.frame(team = teams22,
-                            rating = ratings22,
-                            time = time)
+                              rating = as.double(ratings22),
+                              time = as.double(time))
 
 team_rankings23 <- data.frame(team = teams23,
-                            rating = ratings23,
-                            time = time)
+                              rating = as.double(ratings23),
+                              time = as.double(time))
 
+running22 <- read.csv("/Users/andersoninman/desktop/Composite Scrapes/RunningCompositeRankings2022.csv")
 
-write.csv(team_rankings22, paste0("/Users/stevenplaisance/desktop/Projects/SoonerBot/CompositeScrapes/",time,".csv"))
+running22 <- bind_rows(running22,team_rankings22)
 
+write.csv(running22, "/Users/andersoninman/desktop/Composite Scrapes/RunningCompositeRankings2022.csv",
+          row.names = F)
 
-
+print(paste0("running total = ",nrow(running22)))
