@@ -2,43 +2,35 @@ library(rvest)
 library(lubridate)
 library(tidyverse)
 
-compteamrank22 <- read_html("https://247sports.com/Season/2022-Football/CompositeTeamRankings/")
-compteamrank23 <- read_html("https://247sports.com/Season/2023-Football/CompositeTeamRankings/")
+compteamrank <- read_html("https://247sports.com/Season/2022-Football/CompositeTeamRankings/")
 
-ratings22 <- compteamrank22 %>% 
+ratings <- compteamrank %>% 
   html_elements(".number") %>% 
   html_text2()
 
-ratings23 <- compteamrank23 %>% 
+ratings <- compteamrank %>% 
   html_elements(".number") %>% 
   html_text2()
 
-teams22 <- compteamrank22 %>% 
+teams <- compteamrank %>% 
   html_elements(".rankings-page__name-link") %>% 
   html_text2()
 
-teams23 <- compteamrank23 %>% 
+teams <- compteamrank %>% 
   html_elements(".rankings-page__name-link") %>% 
   html_text2()
 
-time <- Sys.time()
+date <- Sys.Date()
 
-time <- gsub(" |:","",time)
-time <- gsub("-","",time)
+team_rankings <- data.frame(team = teams22,
+                            rating = as.double(ratings22),
+                            date = date)
 
-team_rankings22 <- data.frame(team = teams22,
-                              rating = as.double(ratings22),
-                              time = as.double(time))
+running <- read.csv("~/desktop/Composite Scrapes/RunningCompositeRankings2022.csv")
 
-team_rankings23 <- data.frame(team = teams23,
-                              rating = as.double(ratings23),
-                              time = as.double(time))
+running <- bind_rows(running,team_rankings)
 
-running22 <- read.csv("/Users/andersoninman/desktop/Composite Scrapes/RunningCompositeRankings2022.csv")
-
-running22 <- bind_rows(running22,team_rankings22)
-
-write.csv(running22, "/Users/andersoninman/desktop/Composite Scrapes/RunningCompositeRankings2022.csv",
+write.csv(running, "~/desktop/Composite Scrapes/RunningCompositeRankings2022.csv",
           row.names = F)
 
 print(paste0("running total = ",nrow(running22)))
