@@ -1,12 +1,12 @@
-library(rvest)
-library(tidyverse)
-library(lubridate)
-library(glue)
-library(httr)
-library(jsonlite)
-library(stringr)
-library(logging)
-library(rtweet)
+library(rvest, warn.conflicts = F)
+library(tidyverse, warn.conflicts = F)
+library(lubridate, warn.conflicts = F)
+library(glue, warn.conflicts = F)
+library(httr, warn.conflicts = F)
+library(jsonlite, warn.conflicts = F)
+library(stringr, warn.conflicts = F)
+library(logging, warn.conflicts = F)
+library(rtweet, warn.conflicts = F)
 
 target_school <- "Oklahoma"
 target_year <- "2022"

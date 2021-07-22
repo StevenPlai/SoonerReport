@@ -1,8 +1,8 @@
-library(rvest)
-library(tidyverse)
-library(rtweet)
-library(lubridate)
-library(glue)
+library(rvest, warn.conflicts = F)
+library(tidyverse, warn.conflicts = F)
+library(rtweet, warn.conflicts = F)
+library(lubridate, warn.conflicts = F)
+library(glue, warn.conflicts = F)
 
 target_year <- 2023
 
