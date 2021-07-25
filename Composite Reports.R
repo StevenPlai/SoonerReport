@@ -29,9 +29,6 @@ window <- Sys.time()
 window <- window-weeks(2)
 report <- report %>% mutate(test = time-window) %>% filter(test>0) %>% select(-test) 
 initials <- as_vector(report %>% slice(1:5) %>% arrange(team) %>% select(rating))
-geom_line(aes(y = rmean, color = "grey", group = team), size = 2, linetype = 2) 
-
-
 
 
 ggplot(data = report, aes(x = time, y=rating)) +

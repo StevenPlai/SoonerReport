@@ -38,4 +38,29 @@ running <- bind_rows(running,team_rankings)
 write.csv(running, "~/desktop/Composite Scrapes/RunningCompositeRankings2022.csv",
           row.names = F)
 
+commits <- read_html("https://247sports.com/college/oklahoma/Season/2022-Football/Commits/")
+commits <- data.frame(name = trimws(commits %>% html_nodes(".ri-page__name-link") %>% html_text()),
+                      pos = trimws(commits %>% html_nodes(".position") %>% html_text()),
+                      rating = trimws(commits %>% html_nodes(".score") %>% html_text())[-1],
+                      date = commits %>% html_nodes(".commit-date.withDate") %>% html_text(),
+                      time = NA) %>%
+  mutate(date = trimws(gsub("Commit\n", "", date)))
+commits$date <- mdy(commits$date)
+
+runningcommits <- read.csv("~/desktop/Composite Scrapes/RunningCommits2022.csv")
+runningcommits$rating <- as.factor(runningcommits$rating)
+runningcommits$date <- ymd(runningcommits$date)
+new <- anti_join(commits, runningcommits, by=c("name", "date"))
+
+if(nrow(new)>0){
+ new$time <- time
+}
+
+commits <- bind_rows(new, runningcommits)
+
+write.csv(commits, "~/desktop/Composite Scrapes/RunningCommits2022.csv",
+          row.names = F)
+
+loginfo(glue("Found {nrow(new)} new commits on 247 page"))
+
 loginfo(glue("Added {nrow(team_rankings)} obs to running list"))
