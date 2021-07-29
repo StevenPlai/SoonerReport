@@ -148,7 +148,7 @@ if(nrow(new_ou)>0) {
     ht <- pred$ht
     wt <- pred$wt
     predictor <- pred$predictor
-    title <- pred$title
+    title <- trimws(pred$title)
     star <- pred$star
     confidence <- pred$confidence
     
@@ -193,11 +193,6 @@ if(nrow(new_ou)>0) {
     player_predictions <- player_predictions %>% arrange(time)
     player_predictions$cume <- cumsum(player_predictions$conf)
     
-    ggplot(data = player_predictions, aes(x = time, y = cume)) +
-      geom_step(aes(group = team), direction = "hv") +
-      scale_y_continuous(limits = c(0,max(player_predictions$cume))) +
-      scale_x_datetime(limits = c(ymd_hm("2021-02-01 01:01"), max(player_predictions$time)))
-    
     if(is.na(rank)){
       text <-  glue(
         "
@@ -205,7 +200,7 @@ if(nrow(new_ou)>0) {
         
         {target_year} {pos}{name}
         {ht} / {wt}
-        {{hs} ({hometown})
+        {hs} ({hometown})
         
         By: {title} {predictor} ({acc}%)
         Confidence: {confidence}/10
