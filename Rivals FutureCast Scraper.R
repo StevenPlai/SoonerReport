@@ -165,11 +165,11 @@ n_futurecasts <- left_join(futurecasts, forecasters, by = c("forecaster"="full_n
 futurecasts <- bind_rows(t_futurecasts, n_futurecasts) %>% group_by(full_text, time_since) %>%
   summarise(across(forecaster:accuracy,first)) %>% filter(target_school == forecasted_team |
                                                           target_school == original_school) %>%
-  select(colnames(t_futurecasts)) %>% ungroup()
+  select(colnames(t_futurecasts)) %>% ungroup() %>% mutate(forecaster = as.character(forecaster))
 
 running_list <- read.csv("~/Desktop/RFScraper/running_list.csv")
 
-new_futurecasts <- anti_join(futurecasts, running_list, by="full_text")
+new_futurecasts <- anti_join(futurecasts, running_list, by=c("forecaster", "recruit", "time_since", "forecasted_team"))
 
 write.csv(futurecasts, "~/Desktop/RFScraper/running_list.csv")
 
