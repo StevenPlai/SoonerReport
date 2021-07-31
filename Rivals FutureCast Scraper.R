@@ -86,7 +86,7 @@ futurecasts <- futurecasts %>%
     forecasted_team = str_extract(full_text, " to (.*)\\."),
     forecasted_team = sub("to ","", forecasted_team),
     forecasted_team = sub("\\.","", forecasted_team),
-    forecasted_team = trimsws(forecasted_team),
+    forecasted_team = trimws(forecasted_team),
     update = if_else(grepl("updates", full_text, fixed = T), 1, 0),
     original_school = if_else(update == 0, "NA", str_extract(full_text, "from (.*)\\ to")),
     original_school = sub(" to","", original_school),
@@ -169,7 +169,7 @@ futurecasts <- bind_rows(t_futurecasts, n_futurecasts) %>% group_by(full_text, t
 
 running_list <- read.csv("~/Desktop/RFScraper/running_list.csv")
 
-new_futurecasts <- anti_join(futurecasts, running_list, by=c("forecaster", "recruit", "time_since", "forecasted_team"))
+new_futurecasts <- anti_join(futurecasts, running_list, by=c("forecaster", "player_id", "forecasted_team"))
 
 write.csv(futurecasts, "~/Desktop/RFScraper/running_list.csv")
 
