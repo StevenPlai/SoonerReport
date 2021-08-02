@@ -26,15 +26,15 @@ report <- comp %>% filter(team %in% teams) %>% group_by(team) %>%
   mutate(rmean = rollmean(rating, 3, align = "right", fill = 0)) %>% ungroup()
 report$time <- ymd_hms(report$time, tz = "America/Chicago")
 window <- Sys.time()
-window <- window-weeks(2)
+window <- window-weeks(3)
 report <- report %>% mutate(test = time-window) %>% filter(test>0) %>% select(-test) 
 initials <- as_vector(report %>% slice(1:5) %>% arrange(team) %>% select(rating))
 
 
 ggplot(data = report, aes(x = time, y=rating)) +
   scale_color_manual(values = colors) +
-  geom_line(aes(color = team), size = 4) +
-  labs(title = "Two-Week Performance Report",
+  geom_step(aes(color = team), size = 4) +
+  labs(title = "Three-Week Performance Report",
        subtitle = "Class of 2022",
        caption = paste0("Data: 247Sports\n@SoonerReport"),
        y = "247 Composite Rating",
@@ -50,15 +50,15 @@ ggplot(data = report, aes(x = time, y=rating)) +
     panel.background = element_rect(fill="white"),
     legend.position = "none") +
   annotation_custom(rasterGrob(readPNG(logos[1])), 
-                    xmax=min(report$time), ymin=initials["rating1"]-5, ymax =initials["rating1"]+5) +
+                    xmax=min(report$time), ymin=initials["rating1"]-4, ymax =initials["rating1"]+4) +
   annotation_custom(rasterGrob(readPNG(logos[2])), 
-                    xmax=min(report$time), ymin=initials["rating2"]-5, ymax =initials["rating2"]+5) +
-  annotation_custom(rasterGrob(readPNG(logos[3])), 
-                    xmax=min(report$time), ymin=initials["rating3"]-5, ymax =initials["rating3"]+5) +
+                    xmax=min(report$time), ymin=initials["rating2"]-4, ymax =initials["rating2"]+4) +
+  annotation_custom(rasterGrob(readPNG(logos[3])),
+                    xmax=min(report$time)-1, ymin=initials["rating3"]-4, ymax =initials["rating3"]+4) +
   annotation_custom(rasterGrob(readPNG(logos[4])), 
-                    xmax=min(report$time), ymin=initials["rating4"]-5, ymax =initials["rating4"]+5) +
+                    xmax=min(report$time), ymin=initials["rating4"]-4, ymax =initials["rating4"]+4) +
   annotation_custom(rasterGrob(readPNG(logos[5])), 
-                    xmax=min(report$time), ymin=initials["rating5"]-5, ymax =initials["rating5"]+5)
+                    xmax=min(report$time), ymin=initials["rating5"]-4, ymax =initials["rating5"]+4)
   
 
 
