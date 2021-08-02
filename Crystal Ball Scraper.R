@@ -47,7 +47,7 @@ for(i in 0:49){
 player_info <- player_info %>% slice(2:51)
 player_info$number <- 1:50
 
-images <- data.frame(names = image_names, height = image_height, class = image_class)
+images <- data.frame(names = image_names, height = as.integer(image_height), class = image_class)
 images$class <- replace_na(images$class, "")
 teams <- images %>% dplyr::filter(height == 24, class != "old") 
 
@@ -66,7 +66,7 @@ if(length(emptys!=0)) {
     teams <- teams %>% dplyr::filter(number<(current_empty))
     cut <- cut %>% mutate(new = number+1) %>% select(-number, number = new)
     teams <- bind_rows(teams, cut)
-    new_row <- data.frame(names = "icon-zero", height = as.factor(24), number = current_empty)
+    new_row <- data.frame(names = "icon-zero", height = 24, number = current_empty)
     teams <- bind_rows(teams, new_row)
   }
 } else{teams$number <- 1:50}
@@ -97,6 +97,7 @@ player_info$ht <- sep3$ht
 player_info$ht <- gsub(" ","",player_info$ht)
 player_info$wt <- sep3$A
 player_info$wt <- gsub(" |\n","",player_info$wt)
+player_info <- player_info %>% mutate(wt = as.integer(wt))
 player_info$pos <- new_pos$pos
 
 new_rank <- data.frame(rank = player_info$rank)
@@ -109,132 +110,148 @@ player_info <- player_info %>% mutate(star = if_else(rank>0.9832, "5-Star",
                                                              "3-Star")))
 
 cb_list <- left_join(teams, targets, by="number")
-now <- now(tzone = "America/Chicago")
-now <- as.numeric(as.character(gsub("-|:| ","",now)))
-now <- as.numeric(as.character(gsub(".{2}$","",now)))
+now <- ymd_hms(Sys.time())
 cb_list$pred_date=mdy_hm(cb_list$pred_date, truncated = 1, tz = "America/Chicago")
 cb_list$pred_date<- as.numeric(as.character(gsub("-|:| ","",cb_list$pred_date)))
 cb_list$pred_date <- as.numeric(as.character(gsub(".{2}$","",cb_list$pred_date)))
-cb_list <- cb_list %>% mutate(elapsed = now-pred_date)
 cb_list <- left_join(cb_list, player_info, by="number") 
 seqA <- seq(1,99, by = 2)
 seqB <- seq(2,100, by=2)
 predictor_info <- data.frame(predictor = predictor_names[seqA],
                              title = predictor_names[seqB],
                              flink = flinks$link, number = 1:50) 
-predictor_info$confidence <- confidence
+predictor_info$confidence <- as.integer(confidence)
 cb_list <- left_join(cb_list, predictor_info, by="number") 
 
 running_list <- read.csv(paste0("/Users/andersoninman/desktop/CB Scraper/RunningCBList",target_year,".csv"))
+full_list <- read.csv(paste0("/Users/andersoninman/desktop/CB Scraper/FullCBList",target_year,".csv")) %>%
+  mutate(time = ymd_hms(time))
 
 new_pred <- anti_join(cb_list, running_list, by=c("names", "pred_date", "name"))
 
 new_ou <- new_pred %>% filter(names == "Oklahoma") 
 
+new <- new_ou %>% mutate(time = ymd_hms(now))
+
+full_list <- bind_rows(new,full_list)
+
 write.csv(cb_list, paste0("/Users/andersoninman/desktop/CB Scraper/RunningCBList",target_year,".csv"),
           row.names = F)
+write.csv(full_list, paste0("/Users/andersoninman/desktop/CB Scraper/FullCBList",target_year,".csv"),
+          row.names = F)
 
-if(nrow(new_ou)>0) {
+if(nrow(new_ou)>3) {
+  loginfo(glue("Found more than 3 new instances ({nrow(new_ou)}). Not tweeting"))
+} else{
+  if(nrow(new_ou)>0) {
+    
+    for(i in 1:nrow(new_ou)){
+      
+      pred <- new_ou %>% slice(i)
+      
+      name <- pred$name
+      plink <- as.character(pred$plink)
+      flink <- as.character(pred$flink)
+      pos <- pred$pos
+      rank <- pred$star
+      ht <- pred$ht
+      wt <- pred$wt
+      predictor <- pred$predictor
+      title <- pred$title
+      star <- pred$star
+      confidence <- pred$confidence
+      
+      forecaster_info <- read_html(flink) %>% html_nodes(".picks") %>% 
+        html_nodes("li") %>% html_nodes("span") %>% html_text()
+      
+      acc <- round(as.numeric(sub("%", "",forecaster_info[2],fixed=TRUE))/100, digits = 3)*100
+      
+      player_info <- read_html(plink) %>% html_nodes(".upper-cards") %>% html_nodes(".details") %>%
+        html_nodes("li") %>% html_nodes("span") %>% html_text()
+      hs <- trimws(player_info[2], which = "both") 
+      hometown <- player_info[4]
+      
+      player_predictions_link <- read_html(plink) %>% html_nodes(".link-block") %>% 
+        html_nodes("a") %>% 
+        html_attr("href")
+      
+      player_prediction_teams <- read_html(paste0("https:",player_predictions_link[1])) %>% html_nodes(".prediction") %>%
+        html_nodes("img")  %>% html_attr("alt")
+      player_prediction_times <- read_html(paste0("https:",player_predictions_link[1])) %>% html_nodes(".prediction") %>%
+        html_nodes(".date-time")  %>% html_text()
+      player_prediction_conf <- read_html(paste0("https:",player_predictions_link[1])) %>% html_nodes(".confidence-wrap") %>%
+        html_text()
+      test <- read_html(paste0("https:",player_predictions_link[1])) %>% 
+        html_nodes(".prediction-percentage") %>%
+        html_nodes("ul") %>% html_attr("class")
+      
+      if(test == "list cb-1") {
+        player_prediction_conf <- player_prediction_conf[-1]
+      } else {
+        player_prediction_conf <- player_prediction_conf[-1] 
+        player_prediction_conf <- player_prediction_conf[-2]
+      }
+      
+      player_predictions <- data.frame(team = trimws(player_prediction_teams),
+                                       time = trimws(player_prediction_times),
+                                       conf = trimws(player_prediction_conf))
+      sep <- player_predictions %>% separate(col = conf,into = c("A", "B"), sep = "\n")
+      player_predictions$conf <- sep$A
+      sep <- player_predictions %>% separate(col = time,into = c("A", "B"), sep = "\n")
+      player_predictions$time <- mdy_hm(player_predictions$time, truncated = 1, tz = "America/Chicago")
+      player_predictions <- player_predictions %>% arrange(time)
+      player_predictions$cume <- cumsum(player_predictions$conf)
+      
+      ggplot(data = player_predictions, aes(x = time, y = cume)) +
+        geom_step(aes(group = team), direction = "hv") +
+        scale_y_continuous(limits = c(0,max(player_predictions$cume))) +
+        scale_x_datetime(limits = c(ymd_hm("2021-02-01 01:01"), max(player_predictions$time)))
+      
+      if(is.na(rank)){
+        text <-  glue(
+          "
+          \U0001F52E New #Sooners Crystal Ball
+          
+          {target_year} {pos}{name}
+          {ht} / {wt}
+          {{hs} ({hometown})
+          
+          By: {title} {predictor} ({acc}%)
+          Confidence: {confidence}/10
+          
+          {plink}
+          ")
+          } else{
+            text <-  glue(
+              "
+              \U0001F52E New #Sooners Crystal Ball
+              
+              {target_year} {star} {pos}{name}
+              {ht} / {wt}
+              {hs} ({hometown})
+              
+              By: {title} {predictor} ({acc}%)
+              Confidence: {confidence}/10
+              
+              {plink}
+              ")
+          }
+      
+      post_tweet(
+        status = text,
+        media = NULL,
+        token = token
+      )
+          }
+      } else {
+        print(paste0("time = ",now))
+        print("No New CBs")
+        print(paste0("last elapsed = ",cb_list$elapsed[1]))
+        print(paste0("last tme = ",cb_list$pred_date[1]))
+        print(paste0("new pred = ",nrow(new_pred)))
+        print(paste0("new OU = ",nrow(new_ou)))
+        
+      } 
   
-  for(i in 1:nrow(new_ou)){
-    
-    pred <- new_ou %>% slice(i)
-    
-    name <- pred$name
-    plink <- as.character(pred$plink)
-    flink <- as.character(pred$flink)
-    pos <- pred$pos
-    rank <- pred$star
-    ht <- pred$ht
-    wt <- pred$wt
-    predictor <- pred$predictor
-    title <- trimws(pred$title)
-    star <- pred$star
-    confidence <- pred$confidence
-    
-    forecaster_info <- read_html(flink) %>% html_nodes(".picks") %>% 
-      html_nodes("li") %>% html_nodes("span") %>% html_text()
-    
-    acc <- round(as.numeric(sub("%", "",forecaster_info[2],fixed=TRUE))/100, digits = 3)*100
-    
-    player_info <- read_html(plink) %>% html_nodes(".upper-cards") %>% html_nodes(".details") %>%
-      html_nodes("li") %>% html_nodes("span") %>% html_text()
-    hs <- trimws(player_info[2], which = "both") 
-    hometown <- player_info[4]
-    
-    player_predictions_link <- read_html(plink) %>% html_nodes(".link-block") %>% 
-      html_nodes("a") %>% 
-      html_attr("href")
-    
-    player_prediction_teams <- read_html(paste0("https:",player_predictions_link[1])) %>% html_nodes(".prediction") %>%
-      html_nodes("img")  %>% html_attr("alt")
-    player_prediction_times <- read_html(paste0("https:",player_predictions_link[1])) %>% html_nodes(".prediction") %>%
-      html_nodes(".date-time")  %>% html_text()
-    player_prediction_conf <- read_html(paste0("https:",player_predictions_link[1])) %>% html_nodes(".confidence-wrap") %>%
-      html_text()
-    test <- read_html(paste0("https:",player_predictions_link[1])) %>% 
-      html_nodes(".prediction-percentage") %>%
-      html_nodes("ul") %>% html_attr("class")
-    
-    if(test == "list cb-1") {
-      player_prediction_conf <- player_prediction_conf[-1]
-    } else {
-      player_prediction_conf <- player_prediction_conf[-1] 
-      player_prediction_conf <- player_prediction_conf[-2]
     }
-    
-    player_predictions <- data.frame(team = trimws(player_prediction_teams),
-                                     time = trimws(player_prediction_times),
-                                     conf = trimws(player_prediction_conf))
-    sep <- player_predictions %>% separate(col = conf,into = c("A", "B"), sep = "\n")
-    player_predictions$conf <- sep$A
-    sep <- player_predictions %>% separate(col = time,into = c("A", "B"), sep = "\n")
-    player_predictions$time <- mdy_hm(player_predictions$time, truncated = 1, tz = "America/Chicago")
-    player_predictions <- player_predictions %>% arrange(time)
-    player_predictions$cume <- cumsum(player_predictions$conf)
-    
-    if(is.na(rank)){
-      text <-  glue(
-        "
-        \U0001F52E New #Sooners Crystal Ball
-        
-        {target_year} {pos}{name}
-        {ht} / {wt}
-        {hs} ({hometown})
-        
-        By: {title} {predictor} ({acc}%)
-        Confidence: {confidence}/10
-        
-        {plink}
-        ")
-        } else{
-          text <-  glue(
-            "
-            \U0001F52E New #Sooners Crystal Ball
-            
-            {target_year} {star} {pos}{name}
-            {ht} / {wt}
-            {hs} ({hometown})
-            
-            By: {title} {predictor} ({acc}%)
-            Confidence: {confidence}/10
-            
-            {plink}
-            ")
-        }
-    
-    post_tweet(
-      status = text,
-      media = NULL,
-      token = token
-    )
-        }
-} else {
-  print(paste0("time = ",now))
-  print("No New CBs")
-  print(paste0("last elapsed = ",cb_list$elapsed[1]))
-  print(paste0("last tme = ",cb_list$pred_date[1]))
-  print(paste0("new pred = ",nrow(new_pred)))
-  print(paste0("new OU = ",nrow(new_ou)))
-  
-} 
+
