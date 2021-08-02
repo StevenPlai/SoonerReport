@@ -10,6 +10,7 @@ library(rtweet, warn.conflicts = F)
 
 target_school <- "Oklahoma"
 target_year <- "2022"
+now <- ymd_hms(Sys.time())
 
 loginfo("Starting Rivals FutureCast scraping...")
 
@@ -163,15 +164,20 @@ futurecasts <- futurecasts %>%
 n_futurecasts <- left_join(futurecasts, forecasters, by = c("forecaster"="full_name"))
 
 futurecasts <- bind_rows(t_futurecasts, n_futurecasts) %>% group_by(full_text, time_since) %>%
-  summarise(across(forecaster:accuracy,first)) %>% filter(target_school == forecasted_team |
-                                                          target_school == original_school) %>%
+  summarise(across(forecaster:accuracy,first)) %>% filter(forecasted_team == target_school | 
+                                                            original_school == target_school) %>%
   select(colnames(t_futurecasts)) %>% ungroup() %>% mutate(forecaster = as.character(forecaster))
 
 running_list <- read.csv("~/Desktop/RFScraper/running_list.csv")
+full_list <- read.csv("~/Desktop/RFScraper/full_list.csv") %>% mutate(time = ymd_hms(time))
 
 new_futurecasts <- anti_join(futurecasts, running_list, by=c("forecaster", "player_id", "forecasted_team"))
+new_records <- new_futurecasts %>% mutate(time = ymd_hms(now))
 
-write.csv(futurecasts, "~/Desktop/RFScraper/running_list.csv")
+full_list <- bind_rows(full_list, futurecasts)
+
+write.csv(futurecasts, "~/Desktop/RFScraper/running_list.csv", row.names = F)
+write.csv(full_list, "~/Desktop/RFScraper/full_list.csv", row.names = F)
 
 projected_futurecasts <- new_futurecasts %>% filter(target_school == forecasted_team)
 
@@ -331,11 +337,11 @@ if (total > 0) {
     )
     
     loginfo(glue("Tweet {row}/{total} posted"))
+    }
+  } else {
+    loginfo(glue("Did not have any FutureCasts to find expanded info for, returning empty dataframe"))
+    futurecasts <- data.frame()
   }
-} else {
-  loginfo(glue("Did not have any FutureCasts to find expanded info for, returning empty dataframe"))
-  futurecasts <- data.frame()
-}
 
 #Tweet changed FCs
 
@@ -435,7 +441,6 @@ if (total > 0) {
   }
 } else {
   loginfo(glue("Did not have any FutureCasts to find expanded info for, returning empty dataframe"))
-  futurecasts <- data.frame()
 }
 
 
