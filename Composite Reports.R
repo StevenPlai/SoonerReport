@@ -54,7 +54,7 @@ ggplot(data = report, aes(x = time, y=rating)) +
   annotation_custom(rasterGrob(readPNG(logos[2])), 
                     xmax=min(report$time), ymin=initials["rating2"]-4, ymax =initials["rating2"]+4) +
   annotation_custom(rasterGrob(readPNG(logos[3])),
-                    xmax=min(report$time)-2, ymin=initials["rating3"]-4, ymax =initials["rating3"]+4) +
+                    xmax=min(report$time), ymin=initials["rating3"]-4, ymax =initials["rating3"]+4) +
   annotation_custom(rasterGrob(readPNG(logos[4])), 
                     xmax=min(report$time), ymin=initials["rating4"]-4, ymax =initials["rating4"]+4) +
   annotation_custom(rasterGrob(readPNG(logos[5])), 
