@@ -13,6 +13,7 @@ library(glue, warn.conflicts = F)
 library(magick, warn.conflicts = F)
 library(extrafont, warn.conflicts = F)
 library(toOrdinal, warn.conflicts = F)
+library(logging, warn.conflicts = F)
 
 rcycle <- function() {
   date <- Sys.Date()
@@ -63,14 +64,15 @@ logos <- logos[-1]
 report <- comp %>% filter(team %in% teams) %>% group_by(team) %>% 
   mutate(rmean = rollmean(rating, 3, align = "right", fill = 0)) %>% ungroup()
 report$time <- ymd_hms(report$time, tz = "America/Chicago")
-window <- Sys.time()
-window <- window-days(30)
+window <- Sys.time()-days(30)
 report <- report %>% mutate(test = time-window) %>% filter(test>0) %>% select(-test) 
 initials <- as_vector(report %>% slice(1:6) %>% arrange(team) %>% select(rating))
 
 commits <- read.csv(glue("~/desktop/Composite Scrapes/RunningCommits{cycle}.csv")) %>% 
   mutate(time = ymd_hms(time)) %>%
   filter(time>min(report$time) & time<max(report$time))
+
+loginfo(glue("Found {nrow_commits} in 30-day period. Creating plot..."))
 
 p <- ggplot(data = report, aes(x = time, y=rating)) 
 
@@ -99,7 +101,8 @@ p <- p +
       plot.subtitle = element_text(size = 30, hjust = .5, family = "SF Pro Display Light", face = "plain"),
       plot.caption = element_text(size=15, family = "Courier New", face = "bold", hjust = 1),
       axis.title = element_text(size = 18, family = "SF Pro Display Light", color = "black"),
-      axis.text = element_text(size = 15, family = "SF Pro Display Light"),
+      axis.text.x = element_text(size = 15, family = "SF Pro Display Light"),
+      axis.text.y = element_text(size = 15, family = "SF Pro Display Light", lineheight = 1.5),
       panel.grid.major = element_line(color = "#e6f0f9"),
       plot.background = element_rect(fill="white"),
       panel.background = element_rect(fill="white"),
@@ -136,11 +139,13 @@ text <-  glue(
   Oklahoma currently ranks {rank} in 247 Composite for Class of {cycle}
   ")
 
+loginfo(glue("Tweeting plot..."))
+
 post_tweet(status = text,
            media = glue("~/desktop/CompositeReports/30DayReport{cycle}.png"),
            token = token)
 
   
-rasterGrob(readPNG("~/desktop/LOGO.png"))
+
 
 
