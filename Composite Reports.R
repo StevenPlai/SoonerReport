@@ -10,9 +10,9 @@ library(gridExtra, warn.conflicts = F)
 library(grid, warn.conflicts = F)
 library(rtweet, warn.conflicts = F)
 library(glue, warn.conflicts = F)
-library(ggtext, warn.conflicts = F)
 library(magick, warn.conflicts = F)
 library(extrafont, warn.conflicts = F)
+library(toOrdinal, warn.conflicts = F)
 
 rcycle <- function() {
   date <- Sys.Date()
@@ -55,12 +55,11 @@ token <- create_token(
   set_renv = F
 )
 
-ttf_import(paths = "~/desktop/SR Fonts")
-
 comp <- read.csv(glue("~/desktop/Composite Scrapes/RunningCompositeRankings{cycle}.csv"))
 
 teams <- sort(c("Oklahoma", "Alabama", "Ohio State", "Clemson", "Georgia", "Texas"))
-colors <- c("#9E1B32", "#F56600", "#BA0C2F", "#BB0000", "#841617", "#BF5700")
+colors <- c("#9E1B32", "#F56600", "black", "#666666", "#841617", "#BF5700")
+borders <- c("#9E1B32", "white", "white", "white", "white", "white")
 logos <- "NULL"
 for(x in 1:6){
   x <- teams[x]
@@ -81,8 +80,9 @@ initials <- as_vector(report %>% slice(1:6) %>% arrange(team) %>% select(rating)
 
 p <- ggplot(data = report, aes(x = time, y=rating)) +
   scale_color_manual(values = colors) +
-  geom_line(aes(color = team), size = 4) +
-  labs(title = "30-Day Performance Report",
+  geom_line(aes(color = team), size = 3) +
+  geom_line(data=report[report$team=="Alabama",], color="white", size =2) +
+  labs(title = "30-Day Recruiting Report",
        subtitle = glue("Class of {cycle}"),
        caption = "Data: 247Sports\n@SoonerReport",
        y = "247 Composite Rating",
@@ -94,6 +94,7 @@ p <- ggplot(data = report, aes(x = time, y=rating)) +
     plot.caption = element_text(size=15, family = "Courier New", face = "bold", hjust = 1),
     axis.title = element_text(size = 18, family = "SF Pro Display Light", color = "black"),
     axis.text = element_text(size = 15, family = "SF Pro Display Light"),
+    panel.grid.major = element_line(color = "#e6f0f9"),
     plot.background = element_rect(fill="white"),
     panel.background = element_rect(fill="white"),
     legend.position = "none") +
@@ -120,7 +121,16 @@ i <- image_composite(p,image_scale(l,"550"),offset="+5+2530")
 
 image_write(i, path = glue("~/desktop/CompositeReports/30DayReport{cycle}.png"), format = "png")
 
-post_tweet(status = "#Sooners 30-Day Performance Report",
+rank <- comp %>% filter(team == "Oklahoma") %>% slice_max(time) %>% select(rank) %>% as.numeric() %>% toOrdinal()
+
+text <-  glue(
+  "
+  #Sooners 30-Day Recruiting Report
+  
+  Oklahoma currently ranks {rank} in 247 Composite for Class of {cycle}
+  ")
+
+post_tweet(status = text,
            media = glue("~/desktop/CompositeReports/30DayReport{cycle}.png"),
            token = token)
 
