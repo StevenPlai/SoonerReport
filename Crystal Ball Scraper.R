@@ -4,9 +4,7 @@ library(rtweet, warn.conflicts = F)
 library(lubridate, warn.conflicts = F)
 library(glue, warn.conflicts = F)
 
-target_year <- 2023
-
-options(scipen = 999)
+target_year <- 2022
 
 cb <- read_html(paste0("https://247sports.com/Season/",target_year,"-Football/TargetPredictions/")) 
 
@@ -99,15 +97,11 @@ player_info$wt <- sep3$A
 player_info$wt <- gsub(" |\n","",player_info$wt)
 player_info <- player_info %>% mutate(wt = as.integer(wt))
 player_info$pos <- new_pos$pos
-
-new_rank <- data.frame(rank = player_info$rank)
-sep <- new_rank %>% separate(col = rank, into = c("A", "B"), sep = "                \n                ")
-new_rank$rank <- sep$B
-sep <- new_rank %>% separate(col = rank, into = c("A", "B"), sep = "            ")
-player_info$rank <- sep$A
-player_info <- player_info %>% mutate(star = if_else(rank>0.9832, "5-Star",
-                                                     if_else(rank>0.8900, "4-Star",
-                                                             "3-Star")))
+player_info <- player_info %>% mutate(rank = trimws(rank),
+                                      star = if_else(rank=="NA", "NR",
+                                                     if_else(rank>0.9833, "5-Star",
+                                                             if_else(rank>0.8900, "4-Star",
+                                                                     "3-Star"))))
 
 cb_list <- left_join(teams, targets, by="number")
 now <- ymd_hms(Sys.time())
@@ -135,9 +129,9 @@ new <- new_ou %>% mutate(time = ymd_hms(now))
 
 full_list <- bind_rows(new,full_list)
 
-write.csv(cb_list, paste0("/Users/andersoninman/desktop/CB Scraper/RunningCBList",target_year,".csv"),
+write.csv(cb_list, paste0("~/desktop/CB Scraper/RunningCBList",target_year,".csv"),
           row.names = F)
-write.csv(full_list, paste0("/Users/andersoninman/desktop/CB Scraper/FullCBList",target_year,".csv"),
+write.csv(full_list, paste0("~/desktop/CB Scraper/FullCBList",target_year,".csv"),
           row.names = F)
 
 if(nrow(new_ou)>3) {
@@ -153,7 +147,7 @@ if(nrow(new_ou)>3) {
       plink <- as.character(pred$plink)
       flink <- as.character(pred$flink)
       pos <- pred$pos
-      rank <- pred$star
+      rank <- pred$rank
       ht <- pred$ht
       wt <- pred$wt
       predictor <- pred$predictor
@@ -207,7 +201,7 @@ if(nrow(new_ou)>3) {
         scale_y_continuous(limits = c(0,max(player_predictions$cume))) +
         scale_x_datetime(limits = c(ymd_hm("2021-02-01 01:01"), max(player_predictions$time)))
       
-      if(is.na(rank)){
+      if(star == "NR" | rank == "NA" | is.na(rank)){
         text <-  glue(
           "
           \U0001F52E New #Sooners Crystal Ball
