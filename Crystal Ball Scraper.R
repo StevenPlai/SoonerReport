@@ -123,8 +123,8 @@ predictor_info <- data.frame(predictor = predictor_names[seqA],
 predictor_info$confidence <- as.integer(confidence)
 cb_list <- left_join(cb_list, predictor_info, by="number") 
 
-running_list <- read.csv(paste0("/Users/andersoninman/desktop/CB Scraper/RunningCBList",target_year,".csv"))
-full_list <- read.csv(paste0("/Users/andersoninman/desktop/CB Scraper/FullCBList",target_year,".csv")) %>%
+running_list <- read.csv(paste0("~/desktop/CB Scraper/RunningCBList",target_year,".csv"))
+full_list <- read.csv(paste0("~/desktop/CB Scraper/FullCBList",target_year,".csv")) %>%
   mutate(time = ymd_hms(time))
 
 new_pred <- anti_join(cb_list, running_list, by=c("names", "pred_date", "name"))
