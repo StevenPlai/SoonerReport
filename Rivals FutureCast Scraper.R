@@ -343,8 +343,8 @@ if(total > 3){
       }
     } else {
       loginfo(glue("Did not have any FutureCasts to find expanded info for, returning empty dataframe"))
+    }
   }
-}
 
 
 
@@ -360,95 +360,91 @@ if(total > 3){
   loginfo(glue("Found more than 3 new instances ({nrow(total)}). Not tweeting"))
 } else{
   if (total > 0) {
-  loginfo(glue("Retrieving expanded info from Rivals API for {nrow(changed_futurecasts)} Changed FutureCasts"))
-  for (row in 1:total) {
-    player_id <- player_slim_list[row, "player_id"]
-    name  <- trim(player_slim_list[row, "recruit"])
-    year  <- player_slim_list[row, "year"]
-    
-    
-    tryCatch(
-      {
-        loginfo(glue("Starting loading {row}/{total}: {name} (ID: {player_id}, Year: {year})"))
-        result <- get_croot_info(name, player_id, year)
-        expanded_data <- rbind(expanded_data, result)
-      },
-      error = function(cond) {
-        logwarn(paste("Error: ", cond))
-      },
-      finally = {
-        loginfo(glue("Done loading {row}/{total}: {name} (ID: {player_id}, Year: {year})"))
-      }
-    )
-  }
-  
-  
-  changed_futurecasts <- left_join(changed_futurecasts, expanded_data, by = c("player_id" = "prospect_id", "year" = "year"))
-  loginfo(glue("Found and joined expanded info for {nrow(futurecasts)} FutureCasts"))
-  
-  loginfo(glue("Tweeting New FutureCasts"))
-  
-  for (row in 1:total) {
-    link <- as.character(changed_futurecasts[row, "profile_url"])
-    
-    player_profile <- read_html(link) 
-    
-    player_hs <- player_profile %>% html_nodes("div.new-prospect-profile > 
-                                               div.prospect-personal-information > 
-                                               div.location-block > 
-                                               div.right-personal-information > 
-                                               a > .prospect-small-information > 
-                                               .vital-line-location") %>%
-      html_text()
-    
-    name  <- trim(changed_futurecasts[row, "recruit"])
-    year  <- changed_futurecasts[row, "year"]
-    pos <- changed_futurecasts[row, "position_abbreviation"]
-    rank <- changed_futurecasts[row, "stars"]
-    ht <- fixHeight(changed_futurecasts[row, "height"])
-    wt <- changed_futurecasts[row, "weight"]
-    predictor <- changed_futurecasts[row, "forecaster"]
-    title <- changed_futurecasts[row, "title"]
-    acc <- changed_futurecasts[row, "accuracy"]
-    hs <- player_hs[2]
-    hometown <- changed_futurecasts[row, "hometown"]
-    og_school <- changed_futurecasts[row, "original_school"]
-    new_school <- changed_futurecasts[row, "forecasted_team"]
-    
-    if(rank == 0){
-      text <-  glue(
-        "
-        \U0001f6A8 #Sooners Recruiting Alert
-        
-        {title} {predictor} ({acc}%) updates forecast for {year} {pos} {name} from {og_school} to {new_school}
-        
-        {ht} / {wt}
-        {hs} ({hometown})
-        {link}
-        ")
-    } else{
-      text <-  glue(
-        "
-        \U0001f6A8 #Sooners Recruiting Alert
-        
-        {title} {predictor} ({acc}%) updates forecast for {year} {rank}-Star {pos} {name} from {og_school} to {new_school}
-        
-        {ht} / {wt}
-        {hs} ({hometown})
-        {link}
-        ")
+    loginfo(glue("Retrieving expanded info from Rivals API for {nrow(changed_futurecasts)} Changed FutureCasts"))
+    for (row in 1:total) {
+      player_id <- player_slim_list[row, "player_id"]
+      name  <- trim(player_slim_list[row, "recruit"])
+      year  <- player_slim_list[row, "year"]
+      
+      
+      tryCatch(
+        {
+          loginfo(glue("Starting loading {row}/{total}: {name} (ID: {player_id}, Year: {year})"))
+          result <- get_croot_info(name, player_id, year)
+          expanded_data <- rbind(expanded_data, result)
+        },
+        error = function(cond) {
+          logwarn(paste("Error: ", cond))
+        },
+        finally = {
+          loginfo(glue("Done loading {row}/{total}: {name} (ID: {player_id}, Year: {year})"))
+        }
+      )
     }
     
-    post_tweet(
-      status = text,
-      media = NULL,
-      token = token
-    )
     
-    loginfo(glue("Tweet {row}/{total} posted"))
+    changed_futurecasts <- left_join(changed_futurecasts, expanded_data, by = c("player_id" = "prospect_id", "year" = "year"))
+    loginfo(glue("Found and joined expanded info for {nrow(futurecasts)} FutureCasts"))
+    
+    loginfo(glue("Tweeting New FutureCasts"))
+    
+    for (row in 1:total) {
+      link <- as.character(changed_futurecasts[row, "profile_url"])
+      
+      player_profile <- read_html(link) 
+      
+      player_hs <- player_profile %>% html_nodes("div.new-prospect-profile > 
+                                                 div.prospect-personal-information > 
+                                                 div.location-block > 
+                                                 div.right-personal-information > 
+                                                 a > .prospect-small-information > 
+                                                 .vital-line-location") %>%
+        html_text()
+      
+      name  <- trim(changed_futurecasts[row, "recruit"])
+      year  <- changed_futurecasts[row, "year"]
+      pos <- changed_futurecasts[row, "position_abbreviation"]
+      rank <- changed_futurecasts[row, "stars"]
+      ht <- fixHeight(changed_futurecasts[row, "height"])
+      wt <- changed_futurecasts[row, "weight"]
+      predictor <- changed_futurecasts[row, "forecaster"]
+      title <- changed_futurecasts[row, "title"]
+      acc <- changed_futurecasts[row, "accuracy"]
+      hs <- player_hs[2]
+      hometown <- changed_futurecasts[row, "hometown"]
+      og_school <- changed_futurecasts[row, "original_school"]
+      new_school <- changed_futurecasts[row, "forecasted_team"]
+      
+      if(rank == 0){
+        text <-  glue(
+          "
+          \U0001f6A8 {title} {predictor} ({acc}%) updates forecast for {year} {pos} {name} from {og_school} to {new_school}
+          
+          {ht} / {wt}
+          {hs} ({hometown})
+          {link}
+          ")
+      } else{
+        text <-  glue(
+          "
+          \U0001f6A8 {title} {predictor} ({acc}%) updates forecast for {year} {rank}-Star {pos} {name} from {og_school} to {new_school}
+          
+          {ht} / {wt}
+          {hs} ({hometown})
+          {link}
+          ")
+      }
+      
+      post_tweet(
+        status = text,
+        media = NULL,
+        token = token
+      )
+      
+      loginfo(glue("Tweet {row}/{total} posted"))
+      }
+    } else {
+      loginfo(glue("Did not have any FutureCasts to find expanded info for, returning empty dataframe"))
+    }
   }
-} else {
-    loginfo(glue("Did not have any FutureCasts to find expanded info for, returning empty dataframe"))
-  }
-}
 
