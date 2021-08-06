@@ -208,7 +208,7 @@ if(nrow(new_ou)>3) {
           
           {target_year} {pos}{name}
           {ht} / {wt}
-          {{hs} ({hometown})
+          {hs} ({hometown})
           
           By: {title} {predictor} ({acc}%)
           Confidence: {confidence}/10
