@@ -72,7 +72,7 @@ commits <- read.csv(glue("~/desktop/Composite Scrapes/RunningCommits{cycle}.csv"
   mutate(time = ymd_hms(time)) %>%
   filter(time>min(report$time) & time<max(report$time))
 
-loginfo(glue("Found {nrow(commits)} in 30-day period. Creating plot..."))
+loginfo(glue("Found {nrow(commits)} commits in 30-day period. Creating plot..."))
 
 p <- ggplot(data = report, aes(x = time, y=rating)) 
 
