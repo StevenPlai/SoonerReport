@@ -85,13 +85,13 @@ for(i in 0:1)
   runningcommits <- read.csv(glue("~/desktop/Composite Scrapes/RunningCommits{year}.csv"))
   runningcommits$rating <- as.factor(runningcommits$rating)
   runningcommits$date <- ymd(runningcommits$date)
+  runningcommits$time <- ymd_hms(runningcommits$time)
   new <- anti_join(commits, runningcommits, by=c("name", "date"))
   
   if(nrow(new)>0){
-    new$time <- time
-  }
+    commits <- bind_rows(new, runningcommits)
+  } 
   
-  commits <- bind_rows(new, runningcommits)
   
   write.csv(commits, glue("~/desktop/Composite Scrapes/RunningCommits{year}.csv"),
             row.names = F)
@@ -100,4 +100,3 @@ for(i in 0:1)
   
   loginfo(glue("Added {nrow(team_rankings)} obs to running list for c/o{year}"))
 }
-
