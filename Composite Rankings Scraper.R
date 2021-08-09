@@ -63,7 +63,7 @@ for(i in 0:1)
                               rating = as.double(ratings),
                               time = time)
   
-  team_rankings <- team_rankings %>% group_by(time) %>% mutate(rank = round(51-rank(rating), digits = 0))
+  team_rankings <- team_rankings %>% group_by(time) %>% mutate(rank = n()+1-rank(rating, ties.method="max"))
   
   running <- read.csv(glue("~/desktop/Composite Scrapes/RunningCompositeRankings{year}.csv"))
   running$time <- ymd_hms(running$time, tz = "America/Chicago")
@@ -73,11 +73,11 @@ for(i in 0:1)
   write.csv(running, glue("~/desktop/Composite Scrapes/RunningCompositeRankings{year}.csv"),
             row.names = F)
   
-  commits <- read_html(glue("https://247sports.com/college/oklahoma/Season/{year}-Football/Commits/"))
-  commits <- data.frame(name = trimws(commits %>% html_nodes(".ri-page__name-link") %>% html_text()),
-                        pos = trimws(commits %>% html_nodes(".position") %>% html_text()),
-                        rating = trimws(commits %>% html_nodes(".score") %>% html_text())[-1],
-                        date = commits %>% html_nodes(".commit-date.withDate") %>% html_text(),
+  obj <- read_html(glue("https://247sports.com/college/oklahoma/Season/{year}-Football/Commits/"))
+  commits <- data.frame(name = trimws(obj %>% html_nodes(".ri-page__name-link") %>% html_text()),
+                        pos = trimws(obj %>% html_nodes(".position") %>% html_text()),
+                        rating = trimws(obj %>% html_nodes(".score") %>% html_text())[-1],
+                        date = obj %>% html_nodes(".commit-date.withDate") %>% html_text(),
                         time = NA) %>%
     mutate(date = trimws(gsub("Commit\n", "", date)))
   commits$date <- mdy(commits$date)
