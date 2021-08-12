@@ -9,7 +9,6 @@ library(logging, warn.conflicts = F)
 library(rtweet, warn.conflicts = F)
 
 target_school <- "Oklahoma"
-target_year <- "2022"
 now <- ymd_hms(Sys.time())
 
 loginfo("Starting Rivals FutureCast scraping...")
@@ -168,13 +167,15 @@ futurecasts <- bind_rows(t_futurecasts, n_futurecasts) %>% group_by(full_text, t
                                                             original_school == target_school) %>%
   select(colnames(t_futurecasts)) %>% ungroup() %>% mutate(forecaster = as.character(forecaster))
 
-running_list <- read.csv("~/Desktop/RFScraper/running_list.csv")
+running_list <- read.csv("~/Desktop/RFScraper/running_list.csv") %>% mutate(forecaster= as.character(forecaster),
+                                                                            forecasted_team= as.character(forecasted_team))
+
 full_list <- read.csv("~/Desktop/RFScraper/full_list.csv") %>% mutate(time = ymd_hms(time))
 
 new_futurecasts <- anti_join(futurecasts, running_list, by=c("forecaster", "player_id", "forecasted_team"))
 new_records <- new_futurecasts %>% mutate(time = ymd_hms(now))
 
-full_list <- bind_rows(full_list, futurecasts)
+full_list <- bind_rows(full_list, new_records)
 
 write.csv(futurecasts, "~/Desktop/RFScraper/running_list.csv", row.names = F)
 write.csv(full_list, "~/Desktop/RFScraper/full_list.csv", row.names = F)
