@@ -36,8 +36,7 @@ rcycle <- function() {
 
 cycle <- rcycle()
 
-for(i in 0:1)
-{
+for(i in 0:1){
   year <- as.character(as.numeric(cycle)+i)
   compteamrank <- read_html(glue("https://247sports.com/Season/{year}-Football/CompositeTeamRankings/"))
   
