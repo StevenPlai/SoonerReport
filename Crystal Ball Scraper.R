@@ -186,12 +186,6 @@ if(nrow(new_ou)>3) {
         player_prediction_conf <- player_prediction_conf[-2]
       }
       
-      player_predictions <- data.frame(team = trimws(player_prediction_teams),
-                                       time = trimws(player_prediction_times),
-                                       conf = trimws(player_prediction_conf))
-      sep <- player_predictions %>% separate(col = conf,into = c("A", "B"), sep = "\n")
-      player_predictions$conf <- sep$A
-      sep <- player_predictions %>% separate(col = time,into = c("A", "B"), sep = "\n")
       #player_predictions <- data.frame(team = trimws(player_prediction_teams),
       #time = trimws(player_prediction_times),
       #conf = trimws(player_prediction_conf))
