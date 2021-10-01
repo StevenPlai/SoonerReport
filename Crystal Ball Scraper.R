@@ -1,5 +1,5 @@
 library(rvest, warn.conflicts = F)
-library(tidyverse, warn.conflicts = F)
+library(tidyverse, quietly = T)
 library(rtweet, warn.conflicts = F)
 library(lubridate, warn.conflicts = F)
 library(glue, warn.conflicts = F)
@@ -192,14 +192,20 @@ if(nrow(new_ou)>3) {
       sep <- player_predictions %>% separate(col = conf,into = c("A", "B"), sep = "\n")
       player_predictions$conf <- sep$A
       sep <- player_predictions %>% separate(col = time,into = c("A", "B"), sep = "\n")
-      player_predictions$time <- mdy_hm(player_predictions$time, truncated = 1, tz = "America/Chicago")
-      player_predictions <- player_predictions %>% arrange(time)
-      player_predictions$cume <- cumsum(player_predictions$conf)
+      #player_predictions <- data.frame(team = trimws(player_prediction_teams),
+      #time = trimws(player_prediction_times),
+      #conf = trimws(player_prediction_conf))
+      #sep <- player_predictions %>% separate(col = conf,into = c("A", "B"), sep = "\n")
+      #player_predictions$conf <- sep$A
+      #sep <- player_predictions %>% separate(col = time,into = c("A", "B"), sep = "\n")
+      #player_predictions$time <- mdy_hm(player_predictions$time, truncated = 1, tz = "America/Chicago")
+      #player_predictions <- player_predictions %>% arrange(time)
+      #player_predictions$cume <- cumsum(player_predictions$conf)
       
-      ggplot(data = player_predictions, aes(x = time, y = cume)) +
-        geom_step(aes(group = team), direction = "hv") +
-        scale_y_continuous(limits = c(0,max(player_predictions$cume))) +
-        scale_x_datetime(limits = c(ymd_hm("2021-02-01 01:01"), max(player_predictions$time)))
+      #ggplot(data = player_predictions, aes(x = time, y = cume)) +
+      #geom_step(aes(group = team), direction = "hv") +
+      #scale_y_continuous(limits = c(0,max(player_predictions$cume))) +
+      #scale_x_datetime(limits = c(ymd_hm("2021-02-01 01:01"), max(player_predictions$time)))
       
       if(star == "NR" | rank == "NA" | is.na(rank)){
         text <-  glue(
@@ -215,20 +221,20 @@ if(nrow(new_ou)>3) {
           
           {plink}
           ")
-          } else{
-            text <-  glue(
-              "
-              \U0001F52E New #Sooners Crystal Ball
-              
-              {target_year} {star} {pos}{name}
-              {ht} / {wt}
-              {hs} ({hometown})
-              
-              By: {title} {predictor} ({acc}%)
-              Confidence: {confidence}/10
-              
-              {plink}
-              ")
+      } else{
+        text <-  glue(
+          "
+          \U0001F52E New #Sooners Crystal Ball
+          
+          {target_year} {star} {pos}{name}
+          {ht} / {wt}
+          {hs} ({hometown})
+          
+          By: {title} {predictor} ({acc}%)
+          Confidence: {confidence}/10
+          
+          {plink}
+          ")
           }
       
       post_tweet(
