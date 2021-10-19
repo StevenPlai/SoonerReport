@@ -64,7 +64,8 @@ logos <- logos[-1]
 report <- comp %>% filter(team %in% teams) %>% group_by(team) %>% 
   mutate(rmean = rollmean(rating, 3, align = "right", fill = 0)) %>% ungroup()
 report$time <- ymd_hms(report$time, tz = "America/Chicago")
-window <- Sys.time()-days(30)
+window <- Sys.time()
+window <- window-days(30)
 report <- report %>% mutate(test = time-window) %>% filter(test>0) %>% select(-test) 
 initials <- as_vector(report %>% slice(1:6) %>% arrange(team) %>% select(rating))
 
@@ -72,7 +73,7 @@ commits <- read.csv(glue("~/desktop/Composite Scrapes/RunningCommits{cycle}.csv"
   mutate(time = ymd_hms(time)) %>%
   filter(time>min(report$time) & time<max(report$time))
 
-loginfo(glue("Found {nrow_commits} in 30-day period. Creating plot..."))
+loginfo(glue("Found {nrow(commits)} in 30-day period. Creating plot..."))
 
 p <- ggplot(data = report, aes(x = time, y=rating)) 
 
@@ -86,39 +87,39 @@ if(nrow(commits)>0){
 }
 
 p <- p +
-    scale_color_manual(values = colors) +
-    geom_line(aes(color = team), size = 2) +
-    geom_line(data=report[report$team=="Alabama",], color="white", size =1) +
-    geom_line(data=report[report$team=="Oklahoma",], color="#841617", size = 4) +
-    labs(title = "30-Day Recruiting Report",
-         subtitle = glue("Class of {cycle}"),
-         caption = "Data: 247Sports\n@SoonerReport",
-         y = "247 Composite Team Rating",
-         x = "Date") +
-    theme_fivethirtyeight() +
-    theme(
-      plot.title = element_text(size = 45, hjust = .5, family = "SF Pro Display Regular", face = "plain", vjust = .7),
-      plot.subtitle = element_text(size = 30, hjust = .5, family = "SF Pro Display Light", face = "plain"),
-      plot.caption = element_text(size=15, family = "Courier New", face = "bold", hjust = 1),
-      axis.title = element_text(size = 18, family = "SF Pro Display Light", color = "black"),
-      axis.text.x = element_text(size = 15, family = "SF Pro Display Light"),
-      axis.text.y = element_text(size = 15, family = "SF Pro Display Light", lineheight = 1.5),
-      panel.grid.major = element_line(color = "#e6f0f9"),
-      plot.background = element_rect(fill="white"),
-      panel.background = element_rect(fill="white"),
-      legend.position = "none") +
-    annotation_custom(rasterGrob(readPNG(logos[1])), 
-                      xmax=min(report$time), ymin=initials["rating1"]-4, ymax =initials["rating1"]+4) +
-    annotation_custom(rasterGrob(readPNG(logos[2])), 
-                      xmax=min(report$time), ymin=initials["rating2"]-4, ymax =initials["rating2"]+4) +
-    annotation_custom(rasterGrob(readPNG(logos[3])),
-                      xmax=min(report$time), ymin=initials["rating3"]-4, ymax =initials["rating3"]+4) +
-    annotation_custom(rasterGrob(readPNG(logos[4])), 
-                      xmax=min(report$time), ymin=initials["rating4"]-4, ymax =initials["rating4"]+4) +
-    annotation_custom(rasterGrob(readPNG(logos[5])), 
-                      xmax=min(report$time), ymin=initials["rating5"]-6, ymax =initials["rating5"]+6) +
-    annotation_custom(rasterGrob(readPNG(logos[6])), 
-                      xmax=min(report$time), ymin=initials["rating6"]-4, ymax =initials["rating6"]+4)
+  scale_color_manual(values = colors) +
+  geom_line(aes(color = team), size = 2) +
+  geom_line(data=report[report$team=="Alabama",], color="white", size =1) +
+  geom_line(data=report[report$team=="Oklahoma",], color="#841617", size = 4) +
+  labs(title = "30-Day Recruiting Report",
+       subtitle = glue("Class of {cycle}"),
+       caption = "Data: 247Sports\n@SoonerReport",
+       y = "247 Composite Team Rating",
+       x = "Date") +
+  theme_fivethirtyeight() +
+  theme(
+    plot.title = element_text(size = 45, hjust = .5, family = "SF Pro Display Regular", face = "plain", vjust = .7),
+    plot.subtitle = element_text(size = 30, hjust = .5, family = "SF Pro Display Light", face = "plain"),
+    plot.caption = element_text(size=15, family = "Courier New", face = "bold", hjust = 1),
+    axis.title.x = element_text(size = 18, family = "SF Pro Display Light", color = "black", vjust=-.5),
+    axis.title.y = element_text(size = 18, family = "SF Pro Display Light", color = "black", vjust=1.5),
+    axis.text = element_text(size = 15, family = "SF Pro Display Light"),
+    panel.grid.major = element_line(color = "#e6f0f9"),
+    plot.background = element_rect(fill="white"),
+    panel.background = element_rect(fill="white"),
+    legend.position = "none") +
+  annotation_custom(rasterGrob(readPNG(logos[1])), 
+                    xmax=min(report$time), ymin=initials["rating1"]-4, ymax =initials["rating1"]+4) +
+  annotation_custom(rasterGrob(readPNG(logos[2])), 
+                    xmax=min(report$time), ymin=initials["rating2"]-4, ymax =initials["rating2"]+4) +
+  annotation_custom(rasterGrob(readPNG(logos[3])),
+                    xmax=min(report$time), ymin=initials["rating3"]-4, ymax =initials["rating3"]+4) +
+  annotation_custom(rasterGrob(readPNG(logos[4])), 
+                    xmax=min(report$time), ymin=initials["rating4"]-4, ymax =initials["rating4"]+4) +
+  annotation_custom(rasterGrob(readPNG(logos[5])), 
+                    xmax=min(report$time), ymin=initials["rating5"]-6, ymax =initials["rating5"]+6) +
+  annotation_custom(rasterGrob(readPNG(logos[6])), 
+                    xmax=min(report$time), ymin=initials["rating6"]-4, ymax =initials["rating6"]+4)
 
 ggsave(glue("~/desktop/CompositeReports/30DayReport{cycle}.png"), 
        plot = egg::set_panel_size(p=p, width=unit(10, "in"), height=unit(7, "in")),
@@ -144,8 +145,6 @@ loginfo(glue("Tweeting plot..."))
 post_tweet(status = text,
            media = glue("~/desktop/CompositeReports/30DayReport{cycle}.png"),
            token = token)
-
-  
 
 
 

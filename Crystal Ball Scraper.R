@@ -1,12 +1,10 @@
 library(rvest, warn.conflicts = F)
-library(tidyverse, warn.conflicts = F)
+library(tidyverse, quietly = T)
 library(rtweet, warn.conflicts = F)
 library(lubridate, warn.conflicts = F)
 library(glue, warn.conflicts = F)
 
-target_year <- 2023
-
-options(scipen = 999)
+target_year <- 2022
 
 cb <- read_html(paste0("https://247sports.com/Season/",target_year,"-Football/TargetPredictions/")) 
 
@@ -99,15 +97,11 @@ player_info$wt <- sep3$A
 player_info$wt <- gsub(" |\n","",player_info$wt)
 player_info <- player_info %>% mutate(wt = as.integer(wt))
 player_info$pos <- new_pos$pos
-
-new_rank <- data.frame(rank = player_info$rank)
-sep <- new_rank %>% separate(col = rank, into = c("A", "B"), sep = "                \n                ")
-new_rank$rank <- sep$B
-sep <- new_rank %>% separate(col = rank, into = c("A", "B"), sep = "            ")
-player_info$rank <- sep$A
-player_info <- player_info %>% mutate(star = if_else(rank>0.9832, "5-Star",
-                                                     if_else(rank>0.8900, "4-Star",
-                                                             "3-Star")))
+player_info <- player_info %>% mutate(rank = trimws(rank),
+                                      star = if_else(rank=="NA", "NR",
+                                                     if_else(rank>0.9833, "5-Star",
+                                                             if_else(rank>0.8900, "4-Star",
+                                                                     "3-Star"))))
 
 cb_list <- left_join(teams, targets, by="number")
 now <- ymd_hms(Sys.time())
@@ -135,9 +129,9 @@ new <- new_ou %>% mutate(time = ymd_hms(now))
 
 full_list <- bind_rows(new,full_list)
 
-write.csv(cb_list, paste0("/Users/andersoninman/desktop/CB Scraper/RunningCBList",target_year,".csv"),
+write.csv(cb_list, paste0("~/desktop/CB Scraper/RunningCBList",target_year,".csv"),
           row.names = F)
-write.csv(full_list, paste0("/Users/andersoninman/desktop/CB Scraper/FullCBList",target_year,".csv"),
+write.csv(full_list, paste0("~/desktop/CB Scraper/FullCBList",target_year,".csv"),
           row.names = F)
 
 if(nrow(new_ou)>3) {
@@ -153,7 +147,7 @@ if(nrow(new_ou)>3) {
       plink <- as.character(pred$plink)
       flink <- as.character(pred$flink)
       pos <- pred$pos
-      rank <- pred$star
+      rank <- pred$rank
       ht <- pred$ht
       wt <- pred$wt
       predictor <- pred$predictor
@@ -192,49 +186,49 @@ if(nrow(new_ou)>3) {
         player_prediction_conf <- player_prediction_conf[-2]
       }
       
-      player_predictions <- data.frame(team = trimws(player_prediction_teams),
-                                       time = trimws(player_prediction_times),
-                                       conf = trimws(player_prediction_conf))
-      sep <- player_predictions %>% separate(col = conf,into = c("A", "B"), sep = "\n")
-      player_predictions$conf <- sep$A
-      sep <- player_predictions %>% separate(col = time,into = c("A", "B"), sep = "\n")
-      player_predictions$time <- mdy_hm(player_predictions$time, truncated = 1, tz = "America/Chicago")
-      player_predictions <- player_predictions %>% arrange(time)
-      player_predictions$cume <- cumsum(player_predictions$conf)
+      #player_predictions <- data.frame(team = trimws(player_prediction_teams),
+      #time = trimws(player_prediction_times),
+      #conf = trimws(player_prediction_conf))
+      #sep <- player_predictions %>% separate(col = conf,into = c("A", "B"), sep = "\n")
+      #player_predictions$conf <- sep$A
+      #sep <- player_predictions %>% separate(col = time,into = c("A", "B"), sep = "\n")
+      #player_predictions$time <- mdy_hm(player_predictions$time, truncated = 1, tz = "America/Chicago")
+      #player_predictions <- player_predictions %>% arrange(time)
+      #player_predictions$cume <- cumsum(player_predictions$conf)
       
-      ggplot(data = player_predictions, aes(x = time, y = cume)) +
-        geom_step(aes(group = team), direction = "hv") +
-        scale_y_continuous(limits = c(0,max(player_predictions$cume))) +
-        scale_x_datetime(limits = c(ymd_hm("2021-02-01 01:01"), max(player_predictions$time)))
+      #ggplot(data = player_predictions, aes(x = time, y = cume)) +
+      #geom_step(aes(group = team), direction = "hv") +
+      #scale_y_continuous(limits = c(0,max(player_predictions$cume))) +
+      #scale_x_datetime(limits = c(ymd_hm("2021-02-01 01:01"), max(player_predictions$time)))
       
-      if(is.na(rank)){
+      if(star == "NR" | rank == "NA" | is.na(rank)){
         text <-  glue(
           "
           \U0001F52E New #Sooners Crystal Ball
           
           {target_year} {pos}{name}
           {ht} / {wt}
-          {{hs} ({hometown})
+          {hs} ({hometown})
           
           By: {title} {predictor} ({acc}%)
           Confidence: {confidence}/10
           
           {plink}
           ")
-          } else{
-            text <-  glue(
-              "
-              \U0001F52E New #Sooners Crystal Ball
-              
-              {target_year} {star} {pos}{name}
-              {ht} / {wt}
-              {hs} ({hometown})
-              
-              By: {title} {predictor} ({acc}%)
-              Confidence: {confidence}/10
-              
-              {plink}
-              ")
+      } else{
+        text <-  glue(
+          "
+          \U0001F52E New #Sooners Crystal Ball
+          
+          {target_year} {star} {pos}{name}
+          {ht} / {wt}
+          {hs} ({hometown})
+          
+          By: {title} {predictor} ({acc}%)
+          Confidence: {confidence}/10
+          
+          {plink}
+          ")
           }
       
       post_tweet(
