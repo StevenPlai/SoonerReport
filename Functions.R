@@ -5,7 +5,7 @@ rcycle <- function() {
   year <- as.numeric(date %>% stri_sub(1,4))
   month <- as.numeric(date %>% stri_sub(6,7))
   mday <- as.numeric(date %>% stri_sub(9,10))
-  wday <- wday(date)
+  wday <- lubridate::wday(date)
   if (month>2) {as.character(year+1)
     } else {
     if (month==1) {as.character(year)} else {
