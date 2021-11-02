@@ -1,5 +1,7 @@
 ##Find the current recruiting cycle based on system date
 
+`%notin%` <- Negate(`%in%`)
+
 rcycle <- function() {
   date <- Sys.Date()
   year <- as.numeric(date %>% stri_sub(1,4))

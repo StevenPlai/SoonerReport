@@ -2,7 +2,9 @@ library(tidyverse)
 library(cfbfastR)
 source("Functions.R")
 
-cweek <- CFBWeek()
+lweek <- CFBWeek()-1
+
+info <- cfbd_team_info(year=2021,only_fbs = F) %>% select(school,conference)
 
 pbp <- data.frame()
 for(x in 2015:2021){
@@ -13,7 +15,6 @@ for(x in 2015:2021){
       season_type = "regular",
       team = "Oklahoma",
       epa_wpa = T)
-    if(is.data.frame(df)){ df <- df %>% mutate(week=i)}
     pbp <- bind_rows(pbp,df)
   }
 }
@@ -27,10 +28,29 @@ for(i in 1:16){
     week=i,
     season_type = "regular",
     epa_wpa = T)
-  if(is.data.frame(df)){ df <- df %>% mutate(week=i)}
   pbp21 <- bind_rows(pbp21,df)}
-  
-write.csv(pbp21, "Data/2021PBP.csv")
+
+offense <- pbp %>% filter(pos_team=="Oklahoma",!is.na(EPA),play_type %notin% c("Kickoff", "Uncategorized", "NA"))
+
+offGameRanks <- offense %>% group_by(drive_id,game_id) %>% summarise(opp = first(def_pos_team),
+                                                                     EPA = mean(EPA)) %>% 
+  ungroup() %>% group_by(game_id) %>% summarise(opp = first(opp),
+                                                EPA = mean(EPA)) %>% ungroup()
+
+write.csv(offGameRanks, "Data/OffGameRanks.csv", row.names = F)
+
+offense21 <- pbp21 %>% filter(!is.na(EPA),play_type %notin% c("Kickoff", "Uncategorized","NA"))
+
+weekOff <- offense21 %>% filter(pos_team=="Oklahoma",wk==lweek)
+
+write.csv(weekOff, "Data/WeekOffense.csv", row.names = F)
+
+offenseRanks <- offense21 %>% group_by(drive_id,game_id) %>% summarise(EPA = mean(EPA),
+                                                                school = first(pos_team)) %>% 
+  ungroup() %>% group_by(school) %>% summarise(EPA = mean(EPA)) %>% left_join(info, by="school") %>% 
+  ungroup() %>% filter(!is.na(conference)) %>% select(-conference)
+
+write.csv(offenseRanks, "Data/OffenseRanks.csv", row.names = F)
 
 fg <- pbp %>% 
   filter(play_type=="Field Goal Missed"|play_type=="Field Goal Good"|
