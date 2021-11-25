@@ -20,8 +20,6 @@ source("Functions.R")
 
 lweek <- CFBWeek()-1
 
-pbp <- read.csv("Data/AllPBP.csv")
-
 weekOff <- read.csv("Data/WeekOffense.csv")
 drives <- weekOff %>% group_by(drive_id) %>% summarise(xPts = first(ep_before),
                                                        EPA = mean(EPA),

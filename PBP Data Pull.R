@@ -19,8 +19,6 @@ for(x in 2015:2021){
   }
 }
 
-write.csv(pbp, "Data/AllPBP.csv", row.names = F)
-
 pbp21 <- data.frame()
 for(i in 1:16){
   df <- cfbd_pbp_data(
