@@ -1,6 +1,20 @@
-##Find the current recruiting cycle based on system date
+#Not In
 
 `%notin%` <- Negate(`%in%`)
+
+#Convert dataframe into Twitter Token
+
+convert_token <- function(x) {
+  app = x$app
+  ck = x$consumer_key
+  cs = x$consumer_secret
+  at = x$access_token
+  as = x$access_secret
+  token <- create_token(app=app,ck,cs,access_token=at,access_secret=as,set_renv=F)
+  return(token)
+}
+
+##Find the current recruiting cycle based on system date
 
 rcycle <- function() {
   date <- Sys.Date()
