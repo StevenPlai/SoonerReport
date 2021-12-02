@@ -3,6 +3,9 @@ library(tidyverse, quietly = T)
 library(rtweet, warn.conflicts = F)
 library(lubridate, warn.conflicts = F)
 library(glue, warn.conflicts = F)
+source("Functions.R")
+
+token <- read.csv("Token.csv") %>% convert_token()
 
 target_year <- 2022
 

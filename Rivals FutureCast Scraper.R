@@ -8,6 +8,8 @@ library(stringr, warn.conflicts = F)
 library(logging, warn.conflicts = F)
 library(rtweet, warn.conflicts = F)
 
+token <- read.csv("Token.csv") %>% convert_token()
+
 target_school <- "Oklahoma"
 now <- ymd_hms(Sys.time())
 

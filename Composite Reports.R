@@ -15,6 +15,8 @@ library(extrafont, warn.conflicts = F)
 library(toOrdinal, warn.conflicts = F)
 library(logging, warn.conflicts = F)
 
+token <- read.csv("Token.csv") %>% convert_token()
+
 rcycle <- function() {
   date <- Sys.Date()
   year <- as.numeric(date %>% stri_sub(1,4))

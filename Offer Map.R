@@ -14,6 +14,8 @@ library(rtweet)
 library(png)
 library(ggpubr)
 
+token <- read.csv("Token.csv") %>% convert_token()
+
 na_cities <- data.frame()
 
 now <- ymd_hms(Sys.time())
