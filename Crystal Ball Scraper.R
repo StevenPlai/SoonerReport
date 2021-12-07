@@ -50,7 +50,11 @@ player_info$number <- 1:50
 
 images <- data.frame(names = image_names, height = as.integer(image_height), class = image_class)
 images$class <- replace_na(images$class, "")
-teams <- images %>% dplyr::filter(height == 24, class != "old") 
+teams <- images %>% dplyr::filter(height == 24) 
+changed <- if_else(teams$class=="old",1,0) %>% lag()
+teams <- teams %>% mutate(changed = if_else(changed==1,1,0),
+                          previous = if_else(changed==1,lag(names),"NA")) %>% 
+  filter(class!="old")
 
 zero <- data.frame(name = span)
 zero <- zero %>% dplyr::slice(31:731)
@@ -67,7 +71,7 @@ if(length(emptys!=0)) {
     teams <- teams %>% dplyr::filter(number<(current_empty))
     cut <- cut %>% mutate(new = number+1) %>% select(-number, number = new)
     teams <- bind_rows(teams, cut)
-    new_row <- data.frame(names = "icon-zero", height = 24, number = current_empty)
+    new_row <- data.frame(names = "icon-zero", height = 24, number = current_empty, changed=0, previous="NA")
     teams <- bind_rows(teams, new_row)
   }
 } else{teams$number <- 1:50}
