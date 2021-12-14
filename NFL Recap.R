@@ -107,13 +107,12 @@ qb_stats <- stats %>% filter(player_name %in% active_qb) %>%
 
 rb_stats <- stats %>% filter(player_name %in% active_rb) %>% 
   select(player_name, recent_team, carries, rushing_yards, rushing_tds, 
-         receptions, receiving_yards, receiving_tds) %>% mutate(ypc = rushing_yards/carries,
-                                                                ypr = receiving_yards/receptions) %>% 
+         receptions, receiving_yards, receiving_tds) %>% 
   arrange(desc(rushing_yards)) %>% 
   left_join(active_players,by="player_name") %>% 
   left_join(logos,by="recent_team") %>% select(headshot_url, full_name, logo,
-                                               carries, rushing_yards, ypc,
-                                               rushing_tds:receiving_yards,ypr,receiving_tds) %>% 
+                                               carries, rushing_yards,
+                                               rushing_tds:receiving_yards,receiving_tds) %>% 
   gt() %>% text_transform(locations = cells_body(columns = logo),
                           fn = function(x){web_image(x,height=120)}) %>% 
   text_transform(locations = cells_body(columns = headshot_url),
@@ -145,30 +144,28 @@ rb_stats <- stats %>% filter(player_name %in% active_rb) %>%
     style=cell_text(
       align = "left"),
     locations = cells_body(columns=full_name)) %>% 
-  fmt_number(columns = ypc, decimals=1) %>%
   cols_label(
     headshot_url = "Player",
     full_name = "",
     logo = "Team",
     carries = "Att",
     rushing_yards = "Yds",
-    ypc = "Avg",
     rushing_tds = "TDs",
     receptions = "Rec",
     receiving_yards = "Yds",
-    ypr = "Avg",
     receiving_tds = "TDs") %>% 
   tab_spanner(
     label = "Rushing",
-    columns = c(carries, rushing_yards, ypc, rushing_tds)) %>% 
+    columns = c(carries, rushing_yards, rushing_tds)) %>% 
   tab_spanner(
     label = "Receiving",
-    columns = c(receptions, receiving_yards, ypr, receiving_tds)) %>% 
+    columns = c(receptions, receiving_yards, receiving_tds)) %>% 
   tab_style(
     style = cell_text(
-      size = px(50),
+      size = px(42),
       color = "#606066",
-      font = "SFProDisplay-Regular"),
+      font = "SFProDisplay-Regular",
+      transform = "uppercase"),
     locations = cells_column_spanners(everything())) %>%
   tab_options(
     column_labels.border.top.style = "none",
@@ -180,16 +177,16 @@ rb_stats <- stats %>% filter(player_name %in% active_rb) %>%
     table.width = px(1700),
     table.border.bottom.style = "none",
     heading.border.bottom.style = "none",
-    heading.padding = px(0))
+    heading.padding = px(0),
+    column_labels.padding = px(0))
 
 wr_stats <- stats %>% filter(player_name %in% active_wr) %>% 
   select(player_name, recent_team, targets, receptions, receiving_yards,
          receiving_yards_after_catch, receiving_tds) %>% 
-  mutate(avg = receiving_yards/receptions) %>% 
   arrange(desc(receiving_yards)) %>% 
   left_join(active_players,by="player_name") %>% 
   left_join(logos,by="recent_team") %>% select(headshot_url, full_name, logo,
-                                               targets:receiving_yards, avg,
+                                               targets:receiving_yards,
                                                receiving_yards_after_catch,
                                                receiving_tds) %>% 
   gt() %>% text_transform(locations = cells_body(columns = logo),
@@ -197,6 +194,8 @@ wr_stats <- stats %>% filter(player_name %in% active_wr) %>%
   text_transform(locations = cells_body(columns = headshot_url),
                  fn = function(x){web_image(x, height=170)}) %>% 
   tab_header(title=" Receivers") %>% 
+  tab_source_note(
+    source_note = html("Images: ESPN<br>Data: nflfastR, espnscrapeR")) %>% 
   tab_style(
     style = cell_text(size = px(100), font = "SFProDisplay-Regular", weight = "bold",
                       align = "left"),
@@ -217,13 +216,18 @@ wr_stats <- stats %>% filter(player_name %in% active_wr) %>%
     locations = cells_column_labels(everything())) %>% 
   tab_style(
     style=cell_text(
+      size = px(40),
+      font = "SFProDisplay-Regular",
+      align = "right"),
+    locations = cells_source_notes()) %>% 
+  tab_style(
+    style=cell_text(
       align = "center"),
     locations = cells_body(everything())) %>% 
   tab_style(
     style=cell_text(
       align = "left"),
     locations = cells_body(columns=full_name)) %>% 
-  fmt_number(columns = avg, decimals=1) %>% 
   tab_options(
     column_labels.border.top.style = "none",
     table.border.top.style = "none",
@@ -234,7 +238,8 @@ wr_stats <- stats %>% filter(player_name %in% active_wr) %>%
     table.width = px(1700),
     table.border.bottom.style = "none",
     heading.border.bottom.style = "none",
-    heading.padding = px(30)) %>%
+    heading.padding = px(30),
+    source_notes.padding = px(20)) %>%
   cols_label(
     headshot_url = "Player",
     full_name = "",
@@ -246,8 +251,8 @@ wr_stats <- stats %>% filter(player_name %in% active_wr) %>%
     receiving_tds= "Tds") 
 
 title <- data.frame(x=1) %>% gt() %>% 
-  tab_header(title="                    Sooners in the NFL",
-             subtitle=glue("   Week {week}")) %>% 
+  tab_header(title="Sooners in the NFL",
+             subtitle=glue("Week {week}")) %>% 
   tab_style(
     style = cell_text(size = px(125), font = "SFProDisplay-Regular", weight = "bold",
                       align = "center"),
@@ -311,6 +316,8 @@ title <- image_read(glue(glue("NFL Recaps/2021Titlewk{week}.png"))) %>%
 
 logo <- image_read("Images/Logo.png")
 
-image_append(c(title,qb,rb,wr),stack=T) %>%
+table <- image_append(c(title,qb,rb,wr),stack=T) %>%
   image_composite(image_scale(logo,"320"),offset="+10")
+
+image_write(table, glue("NFL Recaps/2021FullWk{week}.png"))
 
