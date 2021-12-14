@@ -44,13 +44,12 @@ week <- unique(stats$week)
 
 qb_stats <- stats %>% filter(player_name %in% active_qb) %>% 
   select(player_name, recent_team, completions, attempts, passing_yards, 
-         passing_tds, interceptions) %>% mutate(avg = passing_yards/attempts) %>% 
-  add_pass_rating() %>% mutate(attempts = glue("{completions}/{attempts}")) %>% 
+         passing_tds, interceptions) %>% mutate(avg = passing_yards/attempts) %>%
+  mutate(attempts = glue("{completions}/{attempts}")) %>% 
   arrange(desc(passing_yards)) %>% 
   left_join(active_players,by="player_name") %>% 
   left_join(logos,by="recent_team") %>% select(headshot_url, full_name, logo,
-                                               attempts,avg,passing_yards:interceptions,
-                                               rating) %>% 
+                                               attempts,avg,passing_yards:interceptions) %>% 
   gt() %>% text_transform(locations = cells_body(columns = logo),
                           fn = function(x){web_image(x,height=120)}) %>% 
   text_transform(locations = cells_body(columns = headshot_url),
@@ -61,11 +60,11 @@ qb_stats <- stats %>% filter(player_name %in% active_qb) %>%
                       align = "left"),
     locations = cells_title(group = "title")) %>% 
   tab_style(
-    style = cell_text(size = px(54), font = "SFProDisplay-Regular"),
+    style = cell_text(size = px(60), font = "SFProDisplay-Regular"),
     locations = cells_body(everything())) %>%
   tab_style(
     style = cell_text(
-      size = px(42),
+      size = px(45),
       color = "#606066",
       font = "SFProDisplay-Regular",
       transform = "uppercase"),
@@ -82,17 +81,16 @@ qb_stats <- stats %>% filter(player_name %in% active_qb) %>%
     style=cell_text(
       align = "left"),
     locations = cells_body(columns=full_name)) %>% 
-  fmt_number(columns = c(avg, rating), decimals=1) %>%
+  fmt_number(columns = avg, decimals=1) %>%
   cols_label(
     headshot_url = "Player",
     full_name = "",
     logo = "Team",
     attempts = "Comp/Att",
     passing_yards = "Yds",
-    passing_tds = "TDs",
-    interceptions = "INTs",
-    avg = "YPA",
-    rating = "Rating") %>% 
+    passing_tds = "TD",
+    interceptions = "INT",
+    avg = "YPA") %>% 
   tab_options(
     column_labels.border.top.style = "none",
     table.border.top.style = "none",
@@ -103,7 +101,10 @@ qb_stats <- stats %>% filter(player_name %in% active_qb) %>%
     footnotes.border.bottom.style = "none",
     table.border.bottom.style = "none",
     heading.border.bottom.style = "none",
-    heading.padding = px(30))
+    heading.padding = px(30),
+    table_body.hlines.width = px(4),
+    table_body.border.top.width = px(4),
+    table_body.border.bottom.width = px(4))
 
 rb_stats <- stats %>% filter(player_name %in% active_rb) %>% 
   select(player_name, recent_team, carries, rushing_yards, rushing_tds, 
@@ -123,11 +124,11 @@ rb_stats <- stats %>% filter(player_name %in% active_rb) %>%
                       align = "left"),
     locations = cells_title(group = "title")) %>% 
   tab_style(
-    style = cell_text(size = px(54), font = "SFProDisplay-Regular"),
+    style = cell_text(size = px(60), font = "SFProDisplay-Regular"),
     locations = cells_body(everything())) %>%
   tab_style(
     style = cell_text(
-      size = px(42),
+      size = px(45),
       color = "#606066",
       font = "SFProDisplay-Regular",
       transform = "uppercase"),
@@ -150,10 +151,10 @@ rb_stats <- stats %>% filter(player_name %in% active_rb) %>%
     logo = "Team",
     carries = "Att",
     rushing_yards = "Yds",
-    rushing_tds = "TDs",
+    rushing_tds = "TD",
     receptions = "Rec",
     receiving_yards = "Yds",
-    receiving_tds = "TDs") %>% 
+    receiving_tds = "TD") %>% 
   tab_spanner(
     label = "Rushing",
     columns = c(carries, rushing_yards, rushing_tds)) %>% 
@@ -162,7 +163,7 @@ rb_stats <- stats %>% filter(player_name %in% active_rb) %>%
     columns = c(receptions, receiving_yards, receiving_tds)) %>% 
   tab_style(
     style = cell_text(
-      size = px(42),
+      size = px(45),
       color = "#606066",
       font = "SFProDisplay-Regular",
       transform = "uppercase"),
@@ -178,7 +179,10 @@ rb_stats <- stats %>% filter(player_name %in% active_rb) %>%
     table.border.bottom.style = "none",
     heading.border.bottom.style = "none",
     heading.padding = px(0),
-    column_labels.padding = px(0))
+    column_labels.padding = px(3),
+    table_body.hlines.width = px(4),
+    table_body.border.top.width = px(4),
+    table_body.border.bottom.width = px(4))
 
 wr_stats <- stats %>% filter(player_name %in% active_wr) %>% 
   select(player_name, recent_team, targets, receptions, receiving_yards,
@@ -201,11 +205,11 @@ wr_stats <- stats %>% filter(player_name %in% active_wr) %>%
                       align = "left"),
     locations = cells_title(group = "title")) %>% 
   tab_style(
-    style = cell_text(size = px(54), font = "SFProDisplay-Regular"),
+    style = cell_text(size = px(60), font = "SFProDisplay-Regular"),
     locations = cells_body(everything())) %>%
   tab_style(
     style = cell_text(
-      size = px(42),
+      size = px(45),
       color = "#606066",
       font = "SFProDisplay-Regular",
       transform = "uppercase"),
@@ -239,16 +243,19 @@ wr_stats <- stats %>% filter(player_name %in% active_wr) %>%
     table.border.bottom.style = "none",
     heading.border.bottom.style = "none",
     heading.padding = px(30),
-    source_notes.padding = px(20)) %>%
+    source_notes.padding = px(20),
+    table_body.hlines.width = px(4),
+    table_body.border.top.width = px(4),
+    table_body.border.bottom.width = px(4)) %>%
   cols_label(
     headshot_url = "Player",
     full_name = "",
     logo = "Team",
-    targets = "Tgts",
+    targets = "Tgt",
     receptions = "Rec",
     receiving_yards = "Yds",
     receiving_yards_after_catch = "Yac",
-    receiving_tds= "Tds") 
+    receiving_tds= "Td") 
 
 title <- data.frame(x=1) %>% gt() %>% 
   tab_header(title="Sooners in the NFL",
