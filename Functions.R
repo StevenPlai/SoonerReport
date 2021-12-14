@@ -17,11 +17,45 @@ add_pass_rating <- function(x) {
   d = 2.375-((x$interceptions/x$attempts)*25)
   d <- if_else(d>2.375,2.375,d)
   d <- if_else(d<0,0,d)
-  r = (sum(a,b,c,d)/6)*100
+  r = ((a+b+c+d)/6)*100
   x <- x %>% mutate(rating = r)
   return(x)
 }
+
+#Get Headshot from ESPN (modified from Thomas Mock & espnscrapeR)
+
+get_athlete <- function(athlete_id){
   
+  season <- Sys.Date() %>% substr(1, 4)
+  
+  base_url <- "https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/seasons/{season}/athletes/{athlete_id}"
+  
+  raw_get  <- base_url %>%
+    glue::glue() %>%
+    httr::GET()
+  
+  httr::stop_for_status(raw_get)
+  
+  raw_json <- content(raw_get)
+  
+  athlete_df <- raw_json %>%
+    tibble::enframe() %>%
+    dplyr::filter(name != "$ref") %>%
+    tidyr::pivot_wider(names_from = name, values_from = value) %>%
+    janitor::clean_names() %>%
+    tidyr::hoist(position, pos = "abbreviation") %>%
+    tidyr::hoist(headshot, headshot_url = "href") %>%
+    tidyr::hoist(experience, nfl_exp = "years") %>%
+    tidyr::hoist(team, team_id = list(1, "$ref")) %>%
+    dplyr::select(
+      full_name,
+      headshot_url,
+    ) %>%
+    tidyr::unchop(tidyselect:::where(is.list))
+  
+  athlete_df
+  
+}
 
 #Convert dataframe into Twitter Token
 
