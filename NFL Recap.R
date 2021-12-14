@@ -332,7 +332,7 @@ image_write(table, glue("~/Desktop/NFL Reports/Finals/2021Wk{week}.png"))
 
 text <-  glue(
   "
-  #Sooners in the NFL Recap Week {week}")
+  #Sooners in the NFL Week {week} Recap")
 
 post_tweet(status = text,
            media = glue("~/Desktop/NFL Reports/Finals/2021Wk{week}.png"),
