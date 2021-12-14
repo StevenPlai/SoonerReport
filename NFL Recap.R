@@ -8,12 +8,13 @@ library(patchwork)
 library(magick)
 library(webshot2)
 library(glue)
+library(rtweet)
 source("Functions.R")
 
 active_players <- data.frame(player_name = c("M.Andrews","B.Bell","M.Brown","J.Hurts",
-                                      "C.Lamb", "B.Mayfield", "J.Mixon", "K.Murray",
-                                      "S.Perine", "S.Shepard", "R.Stevenson", "K.Stills",
-                                      "D.Westbrook", "D.Williams"),
+                                             "C.Lamb", "B.Mayfield", "J.Mixon", "K.Murray",
+                                             "S.Perine", "S.Shepard", "R.Stevenson", "K.Stills",
+                                             "D.Westbrook", "D.Williams"),
                              id = c("3116365","2514206","4241372","4040715",
                                     "4241389","3052587","3116385","3917315",
                                     "3116389","2976592","4569173","16016",
@@ -48,15 +49,15 @@ qb_stats <- stats %>% filter(player_name %in% active_qb) %>%
   mutate(attempts = glue("{completions}/{attempts}")) %>% 
   arrange(desc(passing_yards)) %>% 
   left_join(active_players,by="player_name") %>% 
-  left_join(logos,by="recent_team") %>% select(headshot_url, full_name, logo,
-                                               attempts,avg,passing_yards:interceptions) %>% 
+  left_join(logos,by="recent_team") %>% dplyr::select(headshot_url, full_name, logo,
+                                                      attempts,avg,passing_yards:interceptions) %>% 
   gt() %>% text_transform(locations = cells_body(columns = logo),
                           fn = function(x){web_image(x,height=120)}) %>% 
   text_transform(locations = cells_body(columns = headshot_url),
                  fn = function(x){web_image(x, height=170)}) %>% 
   tab_header(title=" Quarterbacks") %>% 
   tab_style(
-    style = cell_text(size = px(100), font = "SFProDisplay-Regular", weight = "bold",
+    style = cell_text(size = px(100), font = "SFProDisplay-Regular",
                       align = "left"),
     locations = cells_title(group = "title")) %>% 
   tab_style(
@@ -120,7 +121,7 @@ rb_stats <- stats %>% filter(player_name %in% active_rb) %>%
                  fn = function(x){web_image(x, height=170)}) %>% 
   tab_header(title=" Running Backs") %>% 
   tab_style(
-    style = cell_text(size = px(100), font = "SFProDisplay-Regular", weight = "bold",
+    style = cell_text(size = px(100), font = "SFProDisplay-Regular",
                       align = "left"),
     locations = cells_title(group = "title")) %>% 
   tab_style(
@@ -201,7 +202,7 @@ wr_stats <- stats %>% filter(player_name %in% active_wr) %>%
   tab_source_note(
     source_note = html("Images: ESPN<br>Data: nflfastR, espnscrapeR")) %>% 
   tab_style(
-    style = cell_text(size = px(100), font = "SFProDisplay-Regular", weight = "bold",
+    style = cell_text(size = px(100), font = "SFProDisplay-Regular",
                       align = "left"),
     locations = cells_title(group = "title")) %>% 
   tab_style(
@@ -222,7 +223,8 @@ wr_stats <- stats %>% filter(player_name %in% active_wr) %>%
     style=cell_text(
       size = px(40),
       font = "SFProDisplay-Regular",
-      align = "right"),
+      align = "right",
+      weight="bold"),
     locations = cells_source_notes()) %>% 
   tab_style(
     style=cell_text(
@@ -261,11 +263,11 @@ title <- data.frame(x=1) %>% gt() %>%
   tab_header(title="Sooners in the NFL",
              subtitle=glue("Week {week}")) %>% 
   tab_style(
-    style = cell_text(size = px(125), font = "SFProDisplay-Regular", weight = "bold",
+    style = cell_text(size = px(125), font = "SFProDisplay-Regular",
                       align = "center"),
     locations=cells_title(group="title")) %>% 
   tab_style(
-    style = cell_text(size = px(100), font = "SFProDisplay-Regular",
+    style = cell_text(size = px(100), font = "SFProDisplay-Light",
                       align = "center"),
     locations=cells_title(group="subtitle")) %>% 
   tab_style(
@@ -292,39 +294,46 @@ title <- data.frame(x=1) %>% gt() %>%
               heading.border.bottom.color = "white")
 
 gtsave(qb_stats, 
-       filename = glue("NFL Recaps/2021QBwk{week}.html"))
+       filename = glue("~/Desktop/NFL Reports/Partials/2021QBwk{week}.html"))
 
-webshot(glue("NFL Recaps/2021QBwk{week}.html"),
-        glue("NFL Recaps/2021QBwk{week}.png"),vwidth=1750)
+webshot(glue("~/Desktop/NFL Reports/Partials/2021QBwk{week}.html"),
+        glue("~/Desktop/NFL Reports/Partials/2021QBwk{week}.png"),vwidth=1750)
 
 gtsave(rb_stats, 
-       filename = glue("NFL Recaps/2021RBwk{week}.html"))
+       filename = glue("~/Desktop/NFL Reports/Partials/2021RBwk{week}.html"))
 
-webshot(glue("NFL Recaps/2021RBwk{week}.html"),
-        glue("NFL Recaps/2021RBwk{week}.png"),vwidth=1750)
+webshot(glue("~/Desktop/NFL Reports/Partials/2021RBwk{week}.html"),
+        glue("~/Desktop/NFL Reports/Partials/2021RBwk{week}.png"),vwidth=1750)
 
 gtsave(wr_stats, 
-       filename = glue("NFL Recaps/2021WRwk{week}.html"))
+       filename = glue("~/Desktop/NFL Reports/Partials/2021WRwk{week}.html"))
 
-webshot(glue("NFL Recaps/2021WRwk{week}.html"),
-                  glue("NFL Recaps/2021WRwk{week}.png"),vwidth=1750)
+webshot(glue("~/Desktop/NFL Reports/Partials/2021WRwk{week}.html"),
+        glue("~/Desktop/NFL Reports/Partials/2021WRwk{week}.png"),vwidth=1750)
 
 gtsave(title, 
-       filename = glue("NFL Recaps/2021Titlewk{week}.html"))
+       filename = glue("~/Desktop/NFL Reports/Partials/2021Titlewk{week}.html"))
 
-webshot(glue("NFL Recaps/2021Titlewk{week}.html"),
-        glue("NFL Recaps/2021Titlewk{week}.png"),vwidth=1750)
+webshot(glue("~/Desktop/NFL Reports/Partials/2021Titlewk{week}.html"),
+        glue("~/Desktop/NFL Reports/Partials/2021Titlewk{week}.png"),vwidth=1750)
 
-qb <- image_read(glue("NFL Recaps/2021QBwk{week}.png"))
-rb <- image_read(glue("NFL Recaps/2021RBwk{week}.png"))
-wr <- image_read(glue("NFL Recaps/2021WRwk{week}.png"))
-title <- image_read(glue(glue("NFL Recaps/2021Titlewk{week}.png"))) %>% 
+qb <- image_read(glue("~/Desktop/NFL Reports/Partials/2021QBwk{week}.png"))
+rb <- image_read(glue("~/Desktop/NFL Reports/Partials/2021RBwk{week}.png"))
+wr <- image_read(glue("~/Desktop/NFL Reports/Partials/2021WRwk{week}.png"))
+title <- image_read(glue(glue("~/Desktop/NFL Reports/Partials/2021Titlewk{week}.png"))) %>% 
   image_crop("1750x270")
 
-logo <- image_read("Images/Logo.png")
+logo <- image_read("~/Desktop/Projects/SoonerReport/Repo/SoonerReport/Images/Logo.png")
 
 table <- image_append(c(title,qb,rb,wr),stack=T) %>%
   image_composite(image_scale(logo,"320"),offset="+10")
 
-image_write(table, glue("NFL Recaps/2021FullWk{week}.png"))
+image_write(table, glue("~/Desktop/NFL Reports/Finals/2021Wk{week}.png"))
 
+text <-  glue(
+  "
+  #Sooners in the NFL Recap Week {week}")
+
+post_tweet(status = text,
+           media = glue("~/Desktop/NFL Reports/Finals/2021Wk{week}.png"),
+           token = token)
