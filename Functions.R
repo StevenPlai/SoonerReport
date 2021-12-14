@@ -2,6 +2,27 @@
 
 `%notin%` <- Negate(`%in%`)
 
+#Compute passer rating
+
+add_pass_rating <- function(x) {
+  a = ((x$completions/x$attempts)-.3)*5
+  a <- if_else(a>2.375,2.375,a)
+  a <- if_else(a<0,0,a)
+  b = ((x$passing_yards/x$attempts)-3)*.25
+  b <- if_else(b>2.375,2.375,b)
+  b <- if_else(b<0,0,b)
+  c = (x$passing_tds/x$attempts)*20
+  c <- if_else(c>2.375,2.375,c)
+  c <- if_else(c<0,0,c)
+  d = 2.375-((x$interceptions/x$attempts)*25)
+  d <- if_else(d>2.375,2.375,d)
+  d <- if_else(d<0,0,d)
+  r = (sum(a,b,c,d)/6)*100
+  x <- x %>% mutate(rating = r)
+  return(x)
+}
+  
+
 #Convert dataframe into Twitter Token
 
 convert_token <- function(x) {
