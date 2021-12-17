@@ -128,7 +128,8 @@ running_list <- read.csv(paste0("~/desktop/CB Scraper/RunningCBList",target_year
 full_list <- read.csv(paste0("~/desktop/CB Scraper/FullCBList",target_year,".csv")) %>%
   mutate(time = ymd_hms(time))
 
-new_pred <- anti_join(cb_list, running_list, by=c("names", "pred_date", "name"))
+new_pred <- anti_join(cb_list, running_list, by=c("names", "pred_date", "name")) %>% 
+  anti_join(full_list, by=c("names", "pred_date", "name"))
 
 new_ou <- new_pred %>% filter(names == "Oklahoma") 
 
