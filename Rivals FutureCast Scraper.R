@@ -7,8 +7,9 @@ library(jsonlite, warn.conflicts = F)
 library(stringr, warn.conflicts = F)
 library(logging, warn.conflicts = F)
 library(rtweet, warn.conflicts = F)
+source("~/desktop/Projects/Sooner Report/Repo/SoonerReport/Functions.R")
 
-token <- read.csv("Token.csv") %>% convert_token()
+token <- read.csv("~/desktop/Projects/Sooner Report/Repo/SoonerReport/Token.csv") %>% convert_token()
 
 target_school <- "Oklahoma"
 now <- ymd_hms(Sys.time())

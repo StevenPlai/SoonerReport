@@ -3,40 +3,12 @@ library(lubridate, warn.conflicts = F)
 library(tidyverse, warn.conflicts = F)
 library(logging, warn.conflicts = F)
 library(glue, warn.conflicts = F)
-
-rcycle <- function() {
-  date <- Sys.Date()
-  year <- as.numeric(date %>% stri_sub(1,4))
-  month <- as.numeric(date %>% stri_sub(6,7))
-  mday <- as.numeric(date %>% stri_sub(9,10))
-  wday <- wday(date)
-  if (month>2) {as.character(year+1)
-  } else {
-    if (month==1) {as.character(year)} else {
-      if(mday>7) {as.character(year+1)} else{
-        if(mday==1) {as.character(year)} else {
-          if(mday==2) {
-            if(wday==5){as.character(year+1)
-            } else{as.character(year)}} else {
-              if(mday==3) {
-                if(wday==5|wday==6){as.character(year+1)
-                } else{as.character(year)}} else{
-                  if(mday==4) {
-                    if(wday>4){as.character(year+1)
-                    } else{as.character(year)}} else{
-                      if(mday==5) {
-                        if(wday>4|wday==1){as.character(year+1)
-                        } else{as.character(year)}} else{
-                          if(mday==6) {
-                            if(wday==3|wday==4){as.character(year)
-                            } else{as.character(year+1)}} else{
-                              if(mday==7) {
-                                if(wday==4){as.character(year)
-                                } else{as.character(year+1)}}}}}}}}}}}}
+library(stringi, warn.conflicts = F)
+source("~/desktop/Projects/Sooner Report/Repo/SoonerReport/Functions.R")
 
 cycle <- rcycle()
 
-for(i in 0:1){
+for(i in 0:2){
   year <- as.character(as.numeric(cycle)+i)
   compteamrank <- read_html(glue("https://247sports.com/Season/{year}-Football/CompositeTeamRankings/"))
   
@@ -64,12 +36,12 @@ for(i in 0:1){
   
   team_rankings <- team_rankings %>% group_by(time) %>% mutate(rank = n()+1-rank(rating, ties.method="max"))
   
-  running <- read.csv(glue("~/desktop/Composite Scrapes/RunningCompositeRankings{year}.csv"))
+  running <- read.csv(glue("~/desktop/CompScraper/RunningCompositeRankings{year}.csv"))
   running$time <- ymd_hms(running$time, tz = "America/Chicago")
   
   running <- bind_rows(running,team_rankings)
   
-  write.csv(running, glue("~/desktop/Composite Scrapes/RunningCompositeRankings{year}.csv"),
+  write.csv(running, glue("~/desktop/CompScraper/RunningCompositeRankings{year}.csv"),
             row.names = F)
   
   obj <- read_html(glue("https://247sports.com/college/oklahoma/Season/{year}-Football/Commits/"))
@@ -81,7 +53,7 @@ for(i in 0:1){
     mutate(date = trimws(gsub("Commit\n", "", date)))
   commits$date <- mdy(commits$date)
   
-  runningcommits <- read.csv(glue("~/desktop/Composite Scrapes/RunningCommits{year}.csv"))
+  runningcommits <- read.csv(glue("~/desktop/CompScraper/RunningCommits{year}.csv"))
   runningcommits$rating <- as.factor(runningcommits$rating)
   runningcommits$date <- ymd(runningcommits$date)
   runningcommits$time <- ymd_hms(runningcommits$time)
@@ -92,7 +64,7 @@ for(i in 0:1){
   } 
   
   
-  write.csv(commits, glue("~/desktop/Composite Scrapes/RunningCommits{year}.csv"),
+  write.csv(commits, glue("~/desktop/CompScraper/RunningCommits{year}.csv"),
             row.names = F)
   
   loginfo(glue("Found {nrow(new)} new commits on 247 page for c/o {year}"))

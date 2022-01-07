@@ -3,13 +3,20 @@ library(tidyverse, quietly = T)
 library(rtweet, warn.conflicts = F)
 library(lubridate, warn.conflicts = F)
 library(glue, warn.conflicts = F)
-source("Functions.R")
+library(logging, warn.conflicts = F)
+source("~/desktop/Projects/Sooner Report/Repo/SoonerReport/Functions.R")
 
-token <- read.csv("Token.csv") %>% convert_token()
+token <- read.csv("~/desktop/Projects/Sooner Report/Repo/SoonerReport/Token.csv") %>% convert_token()
 
-target_year <- 2022
+post_message("247: Beginning Scraping...", "StevenPlai", token = token)
+post_message("247: Beginning Scraping...", "KeganReneau", token = token)
+loginfo("Beginning Scraping...")
 
-cb <- read_html(paste0("https://247sports.com/Season/",target_year,"-Football/TargetPredictions/")) 
+cb <- read_html("https://247sports.com/Season/2022-Football/CurrentTargetPredictions/?OrderBy=UpdatedOn%3ADESC") 
+
+post_message("247: Data acquired... Parsing now", "StevenPlai", token = token)
+post_message("247: Data acquired... Parsing now", "KeganReneau", token = token)
+loginfo("Data acquired... Parsing now")
 
 span <- cb %>% 
   html_elements("span") %>% 
@@ -52,6 +59,7 @@ images <- data.frame(names = image_names, height = as.integer(image_height), cla
 images$class <- replace_na(images$class, "")
 teams <- images %>% dplyr::filter(height == 24) 
 changed <- if_else(teams$class=="old",1,0) %>% lag()
+changed[1] <- 0
 teams <- teams %>% mutate(changed = if_else(changed==1,1,0),
                           previous = if_else(changed==1,lag(names),"NA")) %>% 
   filter(class!="old")
@@ -89,6 +97,7 @@ targets <- targets %>% mutate(site = sep$site, type = sep$type) %>% filter(type 
 new_names <- data.frame(name = player_info$name)
 sep <- new_names %>% separate(col = name, into = c("A", "B", "C", "D", "E"), sep = "                ")
 player_info$name <- sep$B
+player_info$year <- sep$D %>% trimws() %>% substr(2,5)
 player_info$name <- gsub("\n","",player_info$name)
 
 new_pos <- data.frame(pos = player_info$pos)
@@ -124,8 +133,8 @@ predictor_info <- data.frame(predictor = predictor_names[seqA],
 predictor_info$confidence <- as.integer(confidence)
 cb_list <- left_join(cb_list, predictor_info, by="number") 
 
-running_list <- read.csv(paste0("~/desktop/CB Scraper/RunningCBList",target_year,".csv"))
-full_list <- read.csv(paste0("~/desktop/CB Scraper/FullCBList",target_year,".csv")) %>%
+running_list <- read.csv("~/desktop/CBScraper/RunningCBList.csv")
+full_list <- read.csv("~/desktop/CBScraper/FullCBList.csv") %>%
   mutate(time = ymd_hms(time))
 
 new_pred <- anti_join(cb_list, running_list, by=c("names", "pred_date", "name"))
@@ -134,17 +143,23 @@ new_ou <- new_pred %>% filter(names == "Oklahoma")
 
 new <- new_ou %>% mutate(time = ymd_hms(now))
 
-full_list <- bind_rows(new,full_list)
+if(nrow(new>0)) full_list <- bind_rows(new,full_list)
 
-write.csv(cb_list, paste0("~/desktop/CB Scraper/RunningCBList",target_year,".csv"),
+write.csv(cb_list, "~/desktop/CBScraper/RunningCBList.csv",
           row.names = F)
-write.csv(full_list, paste0("~/desktop/CB Scraper/FullCBList",target_year,".csv"),
+write.csv(full_list, "~/desktop/CBScraper/FullCBList.csv",
           row.names = F)
 
 if(nrow(new_ou)>3) {
   loginfo(glue("Found more than 3 new instances ({nrow(new_ou)}). Not tweeting"))
+  post_message(glue("247: Found more than 3 new instances ({nrow(new_ou)}). Not tweeting"), "StevenPlai", token = token)
+  post_message(glue("247: Found more than 3 new instances ({nrow(new_ou)}). Not tweeting"), "KeganReneau", token = token)
 } else{
   if(nrow(new_ou)>0) {
+    
+    loginfo(glue("Found {nrow(new_ou)} new instances. Tweeting Now"))
+    post_message(glue("247: Found {nrow(new_ou)} new instances. Tweeting Now"), "StevenPlai", token = token)
+    post_message(glue("247: Found {nrow(new_ou)} new instances. Tweeting Now"), "KeganReneau", token = token)
     
     for(i in 1:nrow(new_ou)){
       
@@ -154,6 +169,7 @@ if(nrow(new_ou)>3) {
       plink <- as.character(pred$plink)
       flink <- as.character(pred$flink)
       pos <- pred$pos
+      year <- pred$year
       rank <- pred$rank
       ht <- pred$ht
       wt <- pred$wt
@@ -213,7 +229,7 @@ if(nrow(new_ou)>3) {
           "
           \U0001F52E New #Sooners Crystal Ball
           
-          {target_year} {pos}{name}
+          {year} {pos}{name}
           {ht} / {wt}
           {hs} ({hometown})
           
@@ -227,7 +243,7 @@ if(nrow(new_ou)>3) {
           "
           \U0001F52E New #Sooners Crystal Ball
           
-          {target_year} {star} {pos}{name}
+          {year} {star} {pos}{name}
           {ht} / {wt}
           {hs} ({hometown})
           
@@ -236,23 +252,18 @@ if(nrow(new_ou)>3) {
           
           {plink}
           ")
-          }
+      }
       
       post_tweet(
         status = text,
         media = NULL,
         token = token
       )
-          }
-      } else {
-        print(paste0("time = ",now))
-        print("No New CBs")
-        print(paste0("last elapsed = ",cb_list$elapsed[1]))
-        print(paste0("last tme = ",cb_list$pred_date[1]))
-        print(paste0("new pred = ",nrow(new_pred)))
-        print(paste0("new OU = ",nrow(new_ou)))
-        
-      } 
-  
     }
-
+  } else {
+    loginfo("Found 0 new instances")
+    post_message("247: Found 0 new instances", "StevenPlai", token = token)
+    post_message("247: Found 0 new instances", "KeganReneau", token = token)
+  } 
+  
+}

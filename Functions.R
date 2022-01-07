@@ -28,7 +28,19 @@ get_athlete <- function(athlete_id){
   
   season <- Sys.Date() %>% substr(1, 4)
   
-  base_url <- "https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/seasons/{season}/athletes/{athlete_id}"
+  athlete_html <- read_html(glue("https://www.espn.com/nfl/player/_/id/{athlete_id}"))
+  
+  full_text <- athlete_html %>% 
+    html_nodes('body') %>% 
+    html_text() %>% 
+    toString()
+  
+  links <- str_match_all(r,'espncdn":(.*?\\])')  
+  
+  images <- athlete_html %>% html_nodes("img") %>% 
+    html_attr("src")
+  
+  headshot <- images[[4]]
   
   raw_get  <- base_url %>%
     glue::glue() %>%

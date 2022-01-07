@@ -9,16 +9,20 @@ library(magick)
 library(webshot2)
 library(glue)
 library(rtweet)
+library(espnscrapeR)
+library(rvest)
 source("Functions.R")
+
+token <- read.csv("Token.csv") %>% convert_token()
 
 active_players <- data.frame(player_name = c("M.Andrews","B.Bell","M.Brown","J.Hurts",
                                              "C.Lamb", "B.Mayfield", "J.Mixon", "K.Murray",
                                              "S.Perine", "S.Shepard", "R.Stevenson", "K.Stills",
-                                             "D.Westbrook", "D.Williams"),
+                                             "D.Westbrook", "D.Williams", "L.Johnson"),
                              id = c("3116365","2514206","4241372","4040715",
                                     "4241389","3052587","3116385","3917315",
                                     "3116389","2976592","4569173","16016",
-                                    "3892889","17359"))
+                                    "3892889","17359","15797"))
 
 heads <- data.frame()
 for(i in 1:nrow(active_players)){
@@ -33,7 +37,7 @@ active_qb <- c("J.Hurts","B.Mayfield","K.Murray")
 
 active_rb <- c("J.Mixon","S.Perine","R.Stevenson","D.Williams")
 
-active_wr <- c("M.Andrews", "M.Brown", "C.Lamb","S.Shepard","K.Stills","D.Westbrook")
+active_wr <- c("M.Andrews", "M.Brown", "C.Lamb","S.Shepard","K.Stills","D.Westbrook","L.Johnson")
 
 logos <- teams_colors_logos %>% select("recent_team"=team_abbr,
                                        "logo"=team_logo_espn)
@@ -323,7 +327,7 @@ wr <- image_read(glue("~/Desktop/NFL Reports/Partials/2021WRwk{week}.png"))
 title <- image_read(glue(glue("~/Desktop/NFL Reports/Partials/2021Titlewk{week}.png"))) %>% 
   image_crop("1750x270")
 
-logo <- image_read("~/Desktop/Projects/SoonerReport/Repo/SoonerReport/Images/Logo.png")
+logo <- image_read("~/Desktop/Logo.png")
 
 table <- image_append(c(title,qb,rb,wr),stack=T) %>%
   image_composite(image_scale(logo,"320"),offset="+10")
