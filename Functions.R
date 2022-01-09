@@ -170,4 +170,3 @@ CFBWeek <- function() {
                                                                                                   if(mday<19){16}else{
                                                                                                     if(mday==19){
                                                                                                       if(hour>3){17}else{17}}else{17}}}}}}}}}}}
-

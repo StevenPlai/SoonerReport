@@ -13,6 +13,7 @@ token <- read.csv("~/desktop/Projects/Sooner Report/Repo/SoonerReport/Token.csv"
 
 target_school <- "Oklahoma"
 now <- ymd_hms(Sys.time())
+status <- data.frame(time = now)
 
 loginfo("Starting Rivals FutureCast scraping...")
 
@@ -24,9 +25,46 @@ fixHeight <- function(x) paste0(floor(x/12),"-",x-(floor(x/12)*12))
 splitJoin <- function(x) strsplit(x, split="\\s") %>% trim() %>% .[lapply(., length) > 0] %>% unlist() %>% paste()
 
 target_page <- tolower(target_school)
-team_html <- read_html(paste0("https://",target_page,".rivals.com/futurecast"))
 
-main_html <- read_html("https://n.rivals.com/futurecast")
+tryCatch(
+  expr = {
+    team_html <- read_html(paste0("https://",target_page,".rivals.com/futurecast"))
+    status$reg_connection <- 1
+  }, 
+  error = function(e) {
+    status$reg_connection <<- 0
+    update <- data.frame(nat_connection = NA,
+                         new_prediction = NA,
+                         forecaster = NA,
+                         prospect = NA,
+                         tweeted = 0,
+                         text = NA)
+    status <<- bind_cols(status,update)
+    log <- read.csv("~/Desktop/ActivityLogs/RivalsLog.csv") %>% mutate(time = ymd_hms(time))
+    log <- bind_rows(log, status)
+    write.csv(log,"~/Desktop/ActivityLogs/RivalsLog.csv",row.names = F)
+    stop("Soonerscoop could not be reached")
+  })
+
+tryCatch(
+  expr = {
+    main_html <- read_html("https://n.rivals.com/futurecast")
+    status$nat_connection <- 1
+  }, 
+  error = function(e) {
+    print(e)
+    status$nat_connection <<- 0
+    update <- data.frame(new_prediction = NA,
+                         forecaster = NA,
+                         prospect = NA,
+                         tweeted = 0,
+                         text = NA)
+    status <<- bind_cols(status,update)
+    log <- read.csv("~/Desktop/ActivityLogs/RivalsLog.csv") %>% mutate(time = ymd_hms(time))
+    log <- bind_rows(log, status)
+    write.csv(log,"~/Desktop/ActivityLogs/RivalsLog.csv",row.names = F)
+    stop("Rivals could not be reached")
+  })
 
 # ----- FutureCast Forecasters Team -----
 loginfo("Looking for Forecaster information on team page...")
@@ -176,7 +214,22 @@ running_list <- read.csv("~/Desktop/RFScraper/running_list.csv") %>% mutate(fore
 full_list <- read.csv("~/Desktop/RFScraper/full_list.csv") %>% mutate(time = ymd_hms(time))
 
 new_futurecasts <- anti_join(futurecasts, running_list, by=c("forecaster", "player_id", "forecasted_team"))
-new_records <- new_futurecasts %>% mutate(time = ymd_hms(now))
+if(nrow(new_futurecasts>0)){
+  new_records <- new_futurecasts %>% mutate(time = ymd_hms(now))
+  
+} else{
+  update <- data.frame(new_prediction = 0,
+                       forecaster = NA,
+                       prospect = NA,
+                       tweeted = 0,
+                       text = NA)
+  status <- bind_cols(status,update)
+  log <- read.csv("~/Desktop/ActivityLogs/RivalsLog.csv") %>% mutate(time = ymd_hms(time))
+  log <- bind_rows(log, status)
+  write.csv(log,"~/Desktop/ActivityLogs/RivalsLog.csv",row.names = F)
+}
+
+status <- bind_cols(status,update)
 
 full_list <- bind_rows(full_list, new_records)
 
@@ -227,7 +280,7 @@ query_croots <- function(name, year) {
     "Connection"="keep-alive",
     "Cookie"="A1=d=AQABBL_NHmACEKNsUb5rZatSKxxQNn_WTEQFEgEBAQEfIGAoYAAAAAAA_SMAAA&S=AQAAAkKziEj7gaF2mOKKRDUJWqg; A3=d=AQABBL_NHmACEKNsUb5rZatSKxxQNn_WTEQFEgEBAQEfIGAoYAAAAAAA_SMAAA&S=AQAAAkKziEj7gaF2mOKKRDUJWqg; A1S=d=AQABBL_NHmACEKNsUb5rZatSKxxQNn_WTEQFEgEBAQEfIGAoYAAAAAAA_SMAAA&S=AQAAAkKziEj7gaF2mOKKRDUJWqg; GUC=AQEBAQFgIB9gKEId1wSk; XSRF-TOKEN=JWSTp21Yj1wpNjaVz7W7x%2FwNgbUCNxLTFP0oHbOtYWUXdXMt2hvX%2BNQ3ejC8as5FAb1RE%2FKwiH3bY4SlsEl%2BSg%3D%3D; _rivalry_session_v2=ZWZZQVZSQVh3ZnNaSWxaZlgwNU95aXV3a3VFREM2SE9iME9wZG4yaERvd0hHNjJOekhGZG1BOHo4WDM5OFdCSnFCczRWQ0hKelRzMWJna1NDZXV3MndjNHhaZlU1S0ZEdmJFaTVUR1doQ1RHdUJhRlQxUis2cWRBblUyVlhKcXVnVHE0aFlDODZscVMvQWxwRWxQUmpwUGk4QWdXRWUwdTlIZ2lxUk5YdzlJa3RxVVdac3lBdGRiQkxBOEErYXl2djNGT1dXa1g0c3ozSHJJdDZyMkNFZmd0eDZhUmE5TVFHU2RLc045RHlqMFFjUjJvbzVVOU9MNG9ORU9qdHY4K21wTjdtVlNVVU1KWTFNWlY0MUp6eDY3cnNZMHdNYVg5aGQ5TUZoM2doZnZEK1NvWkRkNjBiVVFlYmlyTzVqb21WVFlRRXlmWEVZSmtHZTVsc0tENkdBPT0tLVNNQmpEbzFNMGI1blVuKzVyR1Q3SFE9PQ%3D%3D--0947bcffa7fd9b9703f5522cb9afa8fac7d83254; GUCS=Ae_tyY5k; ywandp=10002066977754%3A1333922239; _cb_ls=1; _ga=GA1.2.770716812.1612631490; _gid=GA1.2.1018170693.1612631490; _gat=1; A1=d=AQABBL_NHmACEKNsUb5rZatSKxxQNn_WTEQFEgEBAQEfIGAoYAAAAAAA_SMAAA&S=AQAAAkKziEj7gaF2mOKKRDUJWqg; A1S=d=AQABBL_NHmACEKNsUb5rZatSKxxQNn_WTEQFEgEBAQEfIGAoYAAAAAAA_SMAAA&S=AQAAAkKziEj7gaF2mOKKRDUJWqg; A3=d=AQABBL_NHmACEKNsUb5rZatSKxxQNn_WTEQFEgEBAQEfIGAoYAAAAAAA_SMAAA&S=AQAAAkKziEj7gaF2mOKKRDUJWqg; GUC=AQEBAQFgIB9gKEId1wSk; _rivalry_session_v2=QW9Cckk0MGF3bnZtSFBLMFVhNlp3M281bFkzajM0dW9KWjh5clJEUWNNVytqU0w5dDg4OGJFY0NiMDNLZ0N1b3g2NEhWcVNvWm40QVdDNmlROGozMXJGazdMQmsrWUo0ZitnZkhHSFcweERuQkwxNUdQdmFESng0bTdPZlJPcTlhYy94QndBNlNWdERSMzRMVWtSbHFxT1l1VlB3eC9TbGN0OFJId2R0S1AwRE16R09GcDArbDVSUVFWcldxQzFoekJibkxNWjVQOVlRZS9vZVBkcTVpWkFqYUFIRkhLMVluaktxdllUNDRUWGw2SjdteDR3K2VHbmk0TytGWFZHdzVJaUNhanN3OFNlbDlxVGMxVEFNeXUrWFVORmt2N0ZkYnVBRUVEaEtJRTBjbHUzSUxiemRiZU8wN3hqZGJDcFA4Nnk3eDJHOGVRVzdmb2pRYUNNNDJnPT0tLXJ4c1ZUUjFXY0dqUHltWE1sSitjUHc9PQ%3D%3D--ab9e9cd73c80953acce2a86a86eb53ab3b0bfabf",
     "TE"="Trailers"
-    ), body = body, encode = "json")
+  ), body = body, encode = "json")
   
   result <- content(croot_req, "text")
   result <- fromJSON(result)$people
@@ -253,7 +306,16 @@ player_slim_list <- projected_futurecasts %>%
 total <- nrow(player_slim_list)
 
 if(total > 3){
-  loginfo(glue("Found more than 3 new instances ({nrow(total)}). Not tweeting"))
+  loginfo(glue("Found more than 3 new instances ({total}). Not tweeting"))
+  update <- data.frame(new_prediction = total,
+                       predictor = NA,
+                       prospect = NA,
+                       tweeted = 0,
+                       text = NA)
+  status <- bind_cols(status,update)
+  log <- read.csv("~/Desktop/ActivityLogs/RivalsLog.csv") %>% mutate(time = ymd_hms(time))
+  log <- bind_rows(log, status)
+  write.csv(log,"~/Desktop/ActivityLogs/RivalsLog.csv",row.names = F)
 } else{
   if (total > 0) {
     loginfo(glue("Retrieving expanded info from Rivals API for {nrow(projected_futurecasts)} New FutureCasts"))
@@ -344,13 +406,20 @@ if(total > 3){
       )
       
       loginfo(glue("Tweet {row}/{total} posted"))
-      }
-    } else {
-      loginfo(glue("Did not have any FutureCasts to find expanded info for, returning empty dataframe"))
+      update <- data.frame(new_prediction = 1,
+                           predictor = predictor,
+                           prospect = name,
+                           tweeted = 1,
+                           text = text)
+      status <- bind_cols(status,update)
+      log <- read.csv("~/Desktop/ActivityLogs/RivalsLog.csv") %>% mutate(time = ymd_hms(time))
+      log <- bind_rows(log, status)
+      write.csv(log,"~/Desktop/ActivityLogs/RivalsLog.csv",row.names = F)
     }
+  } else {
+    loginfo(glue("Did not have any FutureCasts to find expanded info for, returning empty dataframe"))
   }
-
-
+}
 
 #Tweet changed FCs
 
@@ -361,7 +430,16 @@ player_slim_list <- changed_futurecasts %>%
 total <- nrow(player_slim_list)
 
 if(total > 3){
-  loginfo(glue("Found more than 3 new instances ({nrow(total)}). Not tweeting"))
+  loginfo(glue("Found more than 3 new instances ({total}). Not tweeting"))
+  update <- data.frame(new_prediction = total,
+                       predictor = NA,
+                       prospect = NA,
+                       tweeted = 0,
+                       text = NA)
+  status <- bind_cols(status,update)
+  log <- read.csv("~/Desktop/ActivityLogs/RivalsLog.csv") %>% mutate(time = ymd_hms(time))
+  log <- bind_rows(log, status)
+  write.csv(log,"~/Desktop/ActivityLogs/RivalsLog.csv",row.names = F)
 } else{
   if (total > 0) {
     loginfo(glue("Retrieving expanded info from Rivals API for {nrow(changed_futurecasts)} Changed FutureCasts"))
@@ -444,11 +522,23 @@ if(total > 3){
         media = NULL,
         token = token
       )
-      
+      update <- data.frame(new_prediction = 1,
+                           predictor = predictor,
+                           prospect = name,
+                           tweeted = 1,
+                           text = text)
+      status <- bind_cols(status,update)
+      log <- read.csv("~/Desktop/ActivityLogs/RivalsLog.csv") %>% mutate(time = ymd_hms(time))
+      log <- bind_rows(log, status)
+      write.csv(log,"~/Desktop/ActivityLogs/RivalsLog.csv",row.names = F)
       loginfo(glue("Tweet {row}/{total} posted"))
-      }
-    } else {
-      loginfo(glue("Did not have any FutureCasts to find expanded info for, returning empty dataframe"))
     }
+  } else {
+    loginfo(glue("Did not have any FutureCasts to find expanded info for, returning empty dataframe"))
   }
+}
+
+
+
+
 
