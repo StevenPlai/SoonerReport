@@ -4,9 +4,9 @@ library(rtweet, warn.conflicts = F)
 library(lubridate, warn.conflicts = F)
 library(glue, warn.conflicts = F)
 library(logging, warn.conflicts = F)
-source("~/desktop/Projects/Sooner Report/Repo/SoonerReport/Functions.R")
+source("~/desktop/Projects/SoonerReport/Functions.R")
 
-token <- read.csv("~/desktop/Projects/Sooner Report/Repo/SoonerReport/Token.csv") %>% convert_token()
+token <- read.csv("~/desktop/Projects/SoonerReport/Token.csv") %>% convert_token()
 
 loginfo("Beginning Scraping...")
 
