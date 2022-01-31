@@ -4,28 +4,26 @@ library(rtweet, warn.conflicts = F)
 library(lubridate, warn.conflicts = F)
 library(glue, warn.conflicts = F)
 library(logging, warn.conflicts = F)
-source("~/desktop/Projects/SoonerReport/Functions.R")
+source("~/desktop/Projects/Sooner Report/Repo/SoonerReport/Functions.R")
 
-token <- read.csv("~/desktop/Projects/SoonerReport/Token.csv") %>% convert_token()
+token <- read.csv("~/desktop/Projects/Sooner Report/Repo/SoonerReport/Token.csv") %>% convert_token()
 
 loginfo("Beginning Scraping...")
 
 now <- ymd_hms(Sys.time())
-status <- data.frame(time = now)
 
 tryCatch(
   expr = {
     cb <- read_html("https://247sports.com/Season/2022-Football/CurrentTargetPredictions/?OrderBy=UpdatedOn%3ADESC") 
-    status$connection <- 1
   }, 
   error = function(e) {
-    status$connection <<- 0
-    update <- data.frame(new_prediction = NA,
+    status <- data.frame(time = now,
+                         connection = 0,
+                         new_prediction = NA,
                          forecaster = NA,
                          prospect = NA,
                          tweeted = 0,
                          text = NA)
-    status <<- bind_cols(status,update)
     log <- read.csv("~/Desktop/ActivityLogs/247Log.csv") %>% mutate(time = ymd_hms(time))
     log <- bind_rows(log, status)
     write.csv(log,"~/Desktop/ActivityLogs/247Log.csv",row.names = F)
@@ -136,16 +134,12 @@ player_info$wt <- sep3$A
 player_info$wt <- gsub(" |\n","",player_info$wt)
 player_info <- player_info %>% mutate(wt = as.integer(wt))
 player_info$pos <- new_pos$pos
-player_info <- player_info %>% mutate(rank = trimws(rank),
+player_info <- player_info %>% mutate(rank = as.numeric(trimws(rank)),
                                       star = if_else(rank=="NA", "NR",
                                                      if_else(rank>0.9833, "5-Star",
                                                              if_else(rank>0.8900, "4-Star",
-                                                                     "3-Star"))))
-if(any(player_info$name=="Kaevon Freshwater")){
-  player_info <- player_info %>% filter(name!="Kaevon Freshwater")
-  player_info$number <- 1:49
-} else {player_info$number <- 1:50}
-
+                                                                     "3-Star"))),
+                                      number = 1:50) 
 
 cb_list <- left_join(teams, targets, by="number")
 cb_list$pred_date=mdy_hm(cb_list$pred_date, truncated = 1, tz = "America/Chicago")
@@ -161,25 +155,27 @@ predictor_info$confidence <- as.integer(confidence)
 cb_list <- left_join(cb_list, predictor_info, by="number") 
 
 running_list <- read.csv("~/desktop/CBScraper/RunningCBList.csv")
-full_list <- read.csv("~/desktop/CBScraper/FullCBList.csv") %>%
-  mutate(time = ymd_hms(time))
+full_list <- read.csv("~/desktop/CBScraper/FullCBList.csv") %>% mutate(rank = as.numeric(rank),
+                                                                       time = ymd_hms(time))
 
-new_pred <- anti_join(cb_list, running_list, by=c("names", "pred_date", "name"))
+new_pred <- anti_join(cb_list, running_list, by=c("names", "pred_date", "name", "changed")) %>% 
+  anti_join(full_list, by=c("names", "pred_date", "name"))
 
 new_ou <- new_pred %>% filter(names == "Oklahoma") 
 
 if(nrow(new_ou>0)){
-  new <- new_ou %>% mutate(time = ymd_hms(now))
+  new <- new_ou %>% mutate(time = ymd_hms(now), rank = as.numeric(rank), year = as.numeric(year))
   full_list <- bind_rows(new,full_list)
   write.csv(full_list, "~/desktop/CBScraper/FullCBList.csv",
             row.names = F)
 } else{
-  update <- data.frame(new_prediction = 0,
+  status <- data.frame(time = now, 
+                       connection = 1,
+                       new_prediction = 0,
                        forecaster = NA,
                        prospect = NA,
                        tweeted = 0,
                        text = NA)
-  status <- bind_cols(status,update)
   log <- read.csv("~/Desktop/ActivityLogs/247Log.csv") %>% mutate(time = ymd_hms(time))
   log <- bind_rows(log, status)
   write.csv(log,"~/Desktop/ActivityLogs/247Log.csv",row.names = F)
@@ -190,24 +186,26 @@ write.csv(cb_list, "~/desktop/CBScraper/RunningCBList.csv",
 
 if(nrow(new_ou)>3) {
   loginfo(glue("Found more than 3 new instances ({nrow(new_ou)}). Not tweeting"))
-  update <- data.frame(new_prediction = total,
+  status <- data.frame(time = now, 
+                       connection = 1,
+                       new_prediction = total,
                        predictor = NA,
                        prospect = NA,
                        tweeted = 0,
                        text = NA)
-  status <- bind_cols(status,update)
   log <- read.csv("~/Desktop/ActivityLogs/247Log.csv") %>% mutate(time = ymd_hms(time))
   log <- bind_rows(log, status)
   write.csv(log,"~/Desktop/ActivityLogs/247Log.csv",row.names = F)
 } else{
   if(nrow(new_ou)>0) {
     
-    update <- data.frame(new_prediction = nrow(new_ou),
+    status <- data.frame(time = now, 
+                         connection = 1,
+                         new_prediction = nrow(new_ou),
                          predictor = NA,
                          prospect = NA,
                          tweeted = .5,
                          text = NA)
-    status <- bind_cols(status,update)
     log <- read.csv("~/Desktop/ActivityLogs/247Log.csv") %>% mutate(time = ymd_hms(time))
     log <- bind_rows(log, status)
     write.csv(log,"~/Desktop/ActivityLogs/247Log.csv",row.names = F)
@@ -280,7 +278,7 @@ if(nrow(new_ou)>3) {
       if(star == "NR" | rank == "NA" | is.na(rank)){
         text <-  glue(
           "
-          \U0001F52E New #Sooners Crystal Ball
+          \U0001F52E New #Sooners 247 Crystal Ball
           
           {year} {pos}{name}
           {ht} / {wt}
@@ -294,7 +292,7 @@ if(nrow(new_ou)>3) {
       } else{
         text <-  glue(
           "
-          \U0001F52E New #Sooners Crystal Ball
+          \U0001F52E New #Sooners 247 Crystal Ball
           
           {year} {star} {pos}{name}
           {ht} / {wt}
@@ -312,13 +310,16 @@ if(nrow(new_ou)>3) {
         media = NULL,
         token = token
       )
-      update <- data.frame(new_prediction = 1,
-                           predictor = predictor,
+      status <- data.frame(time = now,
+                           reg_connection = 1,
+                           nat_connection = 1,
+                           new_prediction = 1,
+                           forecaster = predictor,
                            prospect = name,
                            tweeted = 1,
                            text = text)
-      status <- bind_cols(status,update)
-      log <- read.csv("~/Desktop/ActivityLogs/247Log.csv") %>% mutate(time = ymd_hms(time))
+      log <- read.csv("~/Desktop/ActivityLogs/247Log.csv") %>% mutate(time = ymd_hms(time)) %>% 
+        slice(2:nrow(log))
       log <- bind_rows(log, status)
       write.csv(log,"~/Desktop/ActivityLogs/247Log.csv",row.names = F)
     }
@@ -327,4 +328,3 @@ if(nrow(new_ou)>3) {
   } 
   
 }
-
