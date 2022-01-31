@@ -75,4 +75,3 @@ for(p in posListRivals){
 browser$close()
 
 join <- full_join(list247,listRivals,by="name",suffix=c("247","Rivals"))
-
