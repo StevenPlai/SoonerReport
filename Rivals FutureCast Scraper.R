@@ -1,5 +1,6 @@
 library(rvest, warn.conflicts = F)
-library(tidyverse, warn.conflicts = F)
+library(dplyr, warn.conflicts = F)
+library(tidyr, warn.conflicts = F)
 library(lubridate, warn.conflicts = F)
 library(glue, warn.conflicts = F)
 library(httr, warn.conflicts = F)
@@ -7,13 +8,14 @@ library(jsonlite, warn.conflicts = F)
 library(stringr, warn.conflicts = F)
 library(logging, warn.conflicts = F)
 library(rtweet, warn.conflicts = F)
-source("~/desktop/Projects/Sooner Report/Repo/SoonerReport/Functions.R")
+library(wdman)
+library(RSelenium)
+source("~/Projects/SoonerReport/Functions.R")
 
-token <- read.csv("~/desktop/Projects/Sooner Report/Repo/SoonerReport/Token.csv") %>% convert_token()
+token <- read.csv("~/Projects/SoonerReport/Token.csv") %>% convert_token()
 
 target_school <- "Oklahoma"
-now <- ymd_hms(Sys.time())
-status <- data.frame(time = now)
+now <- ymd_hms(Sys.time(),tz="UTC")
 
 loginfo("Starting Rivals FutureCast scraping...")
 
@@ -29,37 +31,36 @@ target_page <- tolower(target_school)
 tryCatch(
   expr = {
     team_html <- read_html(paste0("https://",target_page,".rivals.com/futurecast"))
-    status$reg_connection <- 1
-  }, 
+    }, 
   error = function(e) {
-    status$reg_connection <<- 0
-    update <- data.frame(nat_connection = NA,
+    status <<- data.frame(time = now,
+                         reg_connection = 0,
+                         nat_connection = NA,
                          new_prediction = NA,
                          forecaster = NA,
                          prospect = NA,
                          tweeted = 0,
                          text = NA)
-    status <<- bind_cols(status,update)
     log <- read.csv("~/Desktop/ActivityLogs/RivalsLog.csv") %>% mutate(time = ymd_hms(time))
     log <- bind_rows(log, status)
     write.csv(log,"~/Desktop/ActivityLogs/RivalsLog.csv",row.names = F)
     stop("Soonerscoop could not be reached")
-  })
+    })
 
 tryCatch(
   expr = {
     main_html <- read_html("https://n.rivals.com/futurecast")
-    status$nat_connection <- 1
   }, 
   error = function(e) {
     print(e)
-    status$nat_connection <<- 0
-    update <- data.frame(new_prediction = NA,
-                         forecaster = NA,
-                         prospect = NA,
-                         tweeted = 0,
-                         text = NA)
-    status <<- bind_cols(status,update)
+    status <<- data.frame(time = now,
+                          reg_connection = 1,
+                          nat_connection = 0,
+                          new_prediction = NA,
+                          forecaster = NA,
+                          prospect = NA,
+                          tweeted = 0,
+                          text = NA)
     log <- read.csv("~/Desktop/ActivityLogs/RivalsLog.csv") %>% mutate(time = ymd_hms(time))
     log <- bind_rows(log, status)
     write.csv(log,"~/Desktop/ActivityLogs/RivalsLog.csv",row.names = F)
@@ -74,8 +75,8 @@ forecast_nodes <- team_html %>%
 loginfo(glue("Found {length(forecast_nodes)} forecaster nodes on team page. Parsing..."))
 forecasters <- data.frame(
   title = column(forecast_nodes, "[class^=\"ForecasterThumbnail_forecasterTitle__\"]"),
-  first_name = column(forecast_nodes, "[class^=\"Link_link__1xDdm ForecasterThumbnail_forecasterName__\"] > div:nth_child(1)"),
-  last_name = column(forecast_nodes, "[class^=\"Link_link__1xDdm ForecasterThumbnail_forecasterName__\"] > div:nth_child(2)"),
+  first_name = column(forecast_nodes, "[class^=\"Link_link__JtLp8 ForecasterThumbnail_forecasterName__\"] > div:nth_child(1)"),
+  last_name = column(forecast_nodes, "[class^=\"Link_link__JtLp8 ForecasterThumbnail_forecasterName__\"] > div:nth_child(2)"),
   accuracy = column(forecast_nodes, "[class^=\"ForecasterThumbnail_forecasterAccuracy__\"]"),
   stringsAsFactors = FALSE
 )
@@ -99,9 +100,14 @@ loginfo(glue("Looking for recruit futurecast nodes on team page..."))
 fc_nodes <- team_html %>%
   html_nodes("[class^=\"ForecastActivity_forecastActivity__\"] > [class^=\"ForecastActivity_activityText__\"]")
 
+flink <- fc_nodes %>% html_elements(".ForecastActivity_forecastText__tdsTe") %>% 
+  html_elements(".Link_link__JtLp8")
+flink <- flink[seq(from=1,to=99,by=2)] %>% html_attr("href") %>% trimws()
+
 loginfo(glue("Found {length(fc_nodes)} recruit futurecast nodes, parsing..."))
 futurecasts <- data.frame(
   forecaster = column(fc_nodes, "[class^=\"ForecastActivity_forecastText__\"] > b:nth-child(1)"),
+  flink = flink,
   recruit = column(fc_nodes, "[class^=\"ForecastActivity_forecastText__\"] > b:nth_child(2)"),
   profile_url = fc_nodes %>% html_node("[class^=\"ForecastActivity_forecastText__\"] > b:nth_child(2) > a") %>% html_attr('href'),
   full_text = column(fc_nodes, "[class^=\"ForecastActivity_forecastText__\"]"),
@@ -110,8 +116,6 @@ futurecasts <- data.frame(
 )
 
 loginfo(glue("Found {nrow(futurecasts)} recruit futurecast rows on team page"))
-
-now <- now(tz = "UTC")
 
 futurecasts <- futurecasts %>%
   mutate(
@@ -143,8 +147,8 @@ forecast_nodes <- main_html %>%
 loginfo(glue("Found {length(forecast_nodes)} forecaster nodes on national page. Parsing..."))
 forecasters <- data.frame(
   title = column(forecast_nodes, "[class^=\"ForecasterThumbnail_forecasterTitle__\"]"),
-  first_name = column(forecast_nodes, "[class^=\"Link_link__1xDdm ForecasterThumbnail_forecasterName__\"] > div:nth_child(1)"),
-  last_name = column(forecast_nodes, "[class^=\"Link_link__1xDdm ForecasterThumbnail_forecasterName__\"] > div:nth_child(2)"),
+  first_name = column(forecast_nodes, "[class^=\"Link_link__JtLp8 ForecasterThumbnail_forecasterName__\"] > div:nth_child(1)"),
+  last_name = column(forecast_nodes, "[class^=\"Link_link__JtLp8 ForecasterThumbnail_forecasterName__\"] > div:nth_child(2)"),
   accuracy = column(forecast_nodes, "[class^=\"ForecasterThumbnail_forecasterAccuracy__\"]"),
   stringsAsFactors = FALSE
 )
@@ -168,9 +172,14 @@ loginfo(glue("Looking for recruit futurecast nodes on national page..."))
 fc_nodes <- main_html %>%
   html_nodes("[class^=\"ForecastActivity_forecastActivity__\"] > [class^=\"ForecastActivity_activityText__\"]")
 
+flink <- fc_nodes %>% html_elements(".ForecastActivity_forecastText__tdsTe") %>% 
+  html_elements(".Link_link__JtLp8")
+flink <- flink[seq(from=1,to=99,by=2)] %>% html_attr("href") %>% trimws()
+
 loginfo(glue("Found {length(fc_nodes)} recruit futurecast nodes, parsing..."))
 futurecasts <- data.frame(
   forecaster = column(fc_nodes, "[class^=\"ForecastActivity_forecastText__\"] > b:nth-child(1)"),
+  flink = flink,
   recruit = column(fc_nodes, "[class^=\"ForecastActivity_forecastText__\"] > b:nth_child(2)"),
   profile_url = fc_nodes %>% html_node("[class^=\"ForecastActivity_forecastText__\"] > b:nth_child(2) > a") %>% html_attr('href'),
   full_text = column(fc_nodes, "[class^=\"ForecastActivity_forecastText__\"]"),
@@ -213,25 +222,25 @@ running_list <- read.csv("~/Desktop/RFScraper/running_list.csv") %>% mutate(fore
 
 full_list <- read.csv("~/Desktop/RFScraper/full_list.csv") %>% mutate(time = ymd_hms(time))
 
-new_futurecasts <- anti_join(futurecasts, running_list, by=c("forecaster", "player_id", "forecasted_team"))
+new_futurecasts <- anti_join(futurecasts, running_list, by=c("forecaster", "player_id", "forecasted_team")) %>% 
+  anti_join(full_list, by=c("forecaster", "player_id", "forecasted_team"))
 if(nrow(new_futurecasts>0)){
   new_records <- new_futurecasts %>% mutate(time = ymd_hms(now))
-  
+  full_list <- bind_rows(full_list, new_records)
+
 } else{
-  update <- data.frame(new_prediction = 0,
+  status <- data.frame(time = now,
+                       reg_connection = 1,
+                       nat_connection = 1,
+                       new_prediction = 0,
                        forecaster = NA,
                        prospect = NA,
                        tweeted = 0,
                        text = NA)
-  status <- bind_cols(status,update)
   log <- read.csv("~/Desktop/ActivityLogs/RivalsLog.csv") %>% mutate(time = ymd_hms(time))
   log <- bind_rows(log, status)
   write.csv(log,"~/Desktop/ActivityLogs/RivalsLog.csv",row.names = F)
 }
-
-status <- bind_cols(status,update)
-
-full_list <- bind_rows(full_list, new_records)
 
 write.csv(futurecasts, "~/Desktop/RFScraper/running_list.csv", row.names = F)
 write.csv(full_list, "~/Desktop/RFScraper/full_list.csv", row.names = F)
@@ -280,7 +289,7 @@ query_croots <- function(name, year) {
     "Connection"="keep-alive",
     "Cookie"="A1=d=AQABBL_NHmACEKNsUb5rZatSKxxQNn_WTEQFEgEBAQEfIGAoYAAAAAAA_SMAAA&S=AQAAAkKziEj7gaF2mOKKRDUJWqg; A3=d=AQABBL_NHmACEKNsUb5rZatSKxxQNn_WTEQFEgEBAQEfIGAoYAAAAAAA_SMAAA&S=AQAAAkKziEj7gaF2mOKKRDUJWqg; A1S=d=AQABBL_NHmACEKNsUb5rZatSKxxQNn_WTEQFEgEBAQEfIGAoYAAAAAAA_SMAAA&S=AQAAAkKziEj7gaF2mOKKRDUJWqg; GUC=AQEBAQFgIB9gKEId1wSk; XSRF-TOKEN=JWSTp21Yj1wpNjaVz7W7x%2FwNgbUCNxLTFP0oHbOtYWUXdXMt2hvX%2BNQ3ejC8as5FAb1RE%2FKwiH3bY4SlsEl%2BSg%3D%3D; _rivalry_session_v2=ZWZZQVZSQVh3ZnNaSWxaZlgwNU95aXV3a3VFREM2SE9iME9wZG4yaERvd0hHNjJOekhGZG1BOHo4WDM5OFdCSnFCczRWQ0hKelRzMWJna1NDZXV3MndjNHhaZlU1S0ZEdmJFaTVUR1doQ1RHdUJhRlQxUis2cWRBblUyVlhKcXVnVHE0aFlDODZscVMvQWxwRWxQUmpwUGk4QWdXRWUwdTlIZ2lxUk5YdzlJa3RxVVdac3lBdGRiQkxBOEErYXl2djNGT1dXa1g0c3ozSHJJdDZyMkNFZmd0eDZhUmE5TVFHU2RLc045RHlqMFFjUjJvbzVVOU9MNG9ORU9qdHY4K21wTjdtVlNVVU1KWTFNWlY0MUp6eDY3cnNZMHdNYVg5aGQ5TUZoM2doZnZEK1NvWkRkNjBiVVFlYmlyTzVqb21WVFlRRXlmWEVZSmtHZTVsc0tENkdBPT0tLVNNQmpEbzFNMGI1blVuKzVyR1Q3SFE9PQ%3D%3D--0947bcffa7fd9b9703f5522cb9afa8fac7d83254; GUCS=Ae_tyY5k; ywandp=10002066977754%3A1333922239; _cb_ls=1; _ga=GA1.2.770716812.1612631490; _gid=GA1.2.1018170693.1612631490; _gat=1; A1=d=AQABBL_NHmACEKNsUb5rZatSKxxQNn_WTEQFEgEBAQEfIGAoYAAAAAAA_SMAAA&S=AQAAAkKziEj7gaF2mOKKRDUJWqg; A1S=d=AQABBL_NHmACEKNsUb5rZatSKxxQNn_WTEQFEgEBAQEfIGAoYAAAAAAA_SMAAA&S=AQAAAkKziEj7gaF2mOKKRDUJWqg; A3=d=AQABBL_NHmACEKNsUb5rZatSKxxQNn_WTEQFEgEBAQEfIGAoYAAAAAAA_SMAAA&S=AQAAAkKziEj7gaF2mOKKRDUJWqg; GUC=AQEBAQFgIB9gKEId1wSk; _rivalry_session_v2=QW9Cckk0MGF3bnZtSFBLMFVhNlp3M281bFkzajM0dW9KWjh5clJEUWNNVytqU0w5dDg4OGJFY0NiMDNLZ0N1b3g2NEhWcVNvWm40QVdDNmlROGozMXJGazdMQmsrWUo0ZitnZkhHSFcweERuQkwxNUdQdmFESng0bTdPZlJPcTlhYy94QndBNlNWdERSMzRMVWtSbHFxT1l1VlB3eC9TbGN0OFJId2R0S1AwRE16R09GcDArbDVSUVFWcldxQzFoekJibkxNWjVQOVlRZS9vZVBkcTVpWkFqYUFIRkhLMVluaktxdllUNDRUWGw2SjdteDR3K2VHbmk0TytGWFZHdzVJaUNhanN3OFNlbDlxVGMxVEFNeXUrWFVORmt2N0ZkYnVBRUVEaEtJRTBjbHUzSUxiemRiZU8wN3hqZGJDcFA4Nnk3eDJHOGVRVzdmb2pRYUNNNDJnPT0tLXJ4c1ZUUjFXY0dqUHltWE1sSitjUHc9PQ%3D%3D--ab9e9cd73c80953acce2a86a86eb53ab3b0bfabf",
     "TE"="Trailers"
-  ), body = body, encode = "json")
+    ), body = body, encode = "json")
   
   result <- content(croot_req, "text")
   result <- fromJSON(result)$people
@@ -307,18 +316,26 @@ total <- nrow(player_slim_list)
 
 if(total > 3){
   loginfo(glue("Found more than 3 new instances ({total}). Not tweeting"))
-  update <- data.frame(new_prediction = total,
-                       predictor = NA,
+  status <- data.frame(time = now,
+                       reg_connection = 1,
+                       nat_connection = 1,
+                       new_prediction = total,
+                       forecaster = NA,
                        prospect = NA,
                        tweeted = 0,
                        text = NA)
-  status <- bind_cols(status,update)
   log <- read.csv("~/Desktop/ActivityLogs/RivalsLog.csv") %>% mutate(time = ymd_hms(time))
   log <- bind_rows(log, status)
   write.csv(log,"~/Desktop/ActivityLogs/RivalsLog.csv",row.names = F)
 } else{
   if (total > 0) {
     loginfo(glue("Retrieving expanded info from Rivals API for {nrow(projected_futurecasts)} New FutureCasts"))
+    
+    server <- phantomjs(port=1313L)
+    
+    browser <- remoteDriver(browserName = "phantomjs", port=1313)
+    
+    browser$open()
     for (row in 1:total) {
       player_id <- player_slim_list[row, "player_id"]
       name  <- trim(player_slim_list[row, "recruit"])
@@ -349,15 +366,13 @@ if(total > 3){
     for (row in 1:total) {
       link <- as.character(projected_futurecasts[row, "profile_url"])
       
-      player_profile <- read_html(link) 
+      browser$navigate(link)
       
-      player_hs <- player_profile %>% html_nodes("div.new-prospect-profile > 
-                                                 div.prospect-personal-information > 
-                                                 div.location-block > 
-                                                 div.right-personal-information > 
-                                                 a > .prospect-small-information > 
-                                                 .vital-line-location") %>%
-        html_text()
+      player_profile <-  read_html(browser$getPageSource()[[1]])
+      
+      hs <- player_profile %>% html_nodes(".prospect-small-information")
+      hs <- hs[[6]] %>% html_elements("div")
+      hs <- hs[[2]] %>% html_text() %>% trimws()
       
       name  <- trim(projected_futurecasts[row, "recruit"])
       year  <- projected_futurecasts[row, "year"]
@@ -367,14 +382,14 @@ if(total > 3){
       wt <- projected_futurecasts[row, "weight"]
       predictor <- projected_futurecasts[row, "forecaster"]
       title <- projected_futurecasts[row, "title"]
+        
       acc <- projected_futurecasts[row, "accuracy"]
-      hs <- player_hs[2]
       hometown <- projected_futurecasts[row, "hometown"]
       
       if(rank == 0){
         text <-  glue(
           "
-          \U0001F52E New #Sooners FutureCast
+          \U0001F52E New #Sooners Rivals Forecast
           
           {year} {pos} {name}
           {ht} / {wt}
@@ -387,7 +402,7 @@ if(total > 3){
       } else{
         text <-  glue(
           "
-          \U0001F52E New #Sooners FutureCast
+          \U0001F52E New #Sooners Rivals Forecast
           
           {year} {rank}-Star {pos} {name}
           {ht} / {wt}
@@ -398,7 +413,8 @@ if(total > 3){
           {link}
           ")
       }
-      
+      browser$close()
+      server$stop()
       post_tweet(
         status = text,
         media = NULL,
@@ -406,20 +422,22 @@ if(total > 3){
       )
       
       loginfo(glue("Tweet {row}/{total} posted"))
-      update <- data.frame(new_prediction = 1,
-                           predictor = predictor,
+      status <- data.frame(time = now,
+                           reg_connection = 1,
+                           nat_connection = 1,
+                           new_prediction = 1,
+                           forecaster = predictor,
                            prospect = name,
                            tweeted = 1,
                            text = text)
-      status <- bind_cols(status,update)
       log <- read.csv("~/Desktop/ActivityLogs/RivalsLog.csv") %>% mutate(time = ymd_hms(time))
       log <- bind_rows(log, status)
       write.csv(log,"~/Desktop/ActivityLogs/RivalsLog.csv",row.names = F)
+      }
+    } else {
+      loginfo(glue("Did not have any FutureCasts to find expanded info for, returning empty dataframe"))
     }
-  } else {
-    loginfo(glue("Did not have any FutureCasts to find expanded info for, returning empty dataframe"))
   }
-}
 
 #Tweet changed FCs
 
@@ -431,18 +449,25 @@ total <- nrow(player_slim_list)
 
 if(total > 3){
   loginfo(glue("Found more than 3 new instances ({total}). Not tweeting"))
-  update <- data.frame(new_prediction = total,
-                       predictor = NA,
+  status <- data.frame(time = now,
+                       reg_connection = 1,
+                       nat_connection = 1,
+                       new_prediction = total,
+                       forecaster = NA,
                        prospect = NA,
                        tweeted = 0,
                        text = NA)
-  status <- bind_cols(status,update)
   log <- read.csv("~/Desktop/ActivityLogs/RivalsLog.csv") %>% mutate(time = ymd_hms(time))
   log <- bind_rows(log, status)
   write.csv(log,"~/Desktop/ActivityLogs/RivalsLog.csv",row.names = F)
 } else{
   if (total > 0) {
     loginfo(glue("Retrieving expanded info from Rivals API for {nrow(changed_futurecasts)} Changed FutureCasts"))
+    server <- phantomjs(port=1313L)
+    
+    browser <- remoteDriver(browserName = "phantomjs", port=1313)
+    
+    browser$open()
     for (row in 1:total) {
       player_id <- player_slim_list[row, "player_id"]
       name  <- trim(player_slim_list[row, "recruit"])
@@ -473,15 +498,13 @@ if(total > 3){
     for (row in 1:total) {
       link <- as.character(changed_futurecasts[row, "profile_url"])
       
-      player_profile <- read_html(link) 
+      browser$navigate(link)
       
-      player_hs <- player_profile %>% html_nodes("div.new-prospect-profile > 
-                                                 div.prospect-personal-information > 
-                                                 div.location-block > 
-                                                 div.right-personal-information > 
-                                                 a > .prospect-small-information > 
-                                                 .vital-line-location") %>%
-        html_text()
+      player_profile <-  read_html(browser$getPageSource()[[1]])
+      
+      hs <- player_profile %>% html_nodes(".prospect-small-information")
+      hs <- hs[[6]] %>% html_elements("div")
+      hs <- hs[[2]] %>% html_text() %>% trimws()
       
       name  <- trim(changed_futurecasts[row, "recruit"])
       year  <- changed_futurecasts[row, "year"]
@@ -492,7 +515,6 @@ if(total > 3){
       predictor <- changed_futurecasts[row, "forecaster"]
       title <- changed_futurecasts[row, "title"]
       acc <- changed_futurecasts[row, "accuracy"]
-      hs <- player_hs[2]
       hometown <- changed_futurecasts[row, "hometown"]
       og_school <- changed_futurecasts[row, "original_school"]
       new_school <- changed_futurecasts[row, "forecasted_team"]
@@ -500,7 +522,7 @@ if(total > 3){
       if(rank == 0){
         text <-  glue(
           "
-          \U0001f6A8 {title} {predictor} ({acc}%) updates forecast for {year} {pos} {name} from {og_school} to {new_school}
+          \U0001f6A8 {title} {predictor} ({acc}%) updates Rivals forecast for {year} {pos} {name} from {og_school} to {new_school}
           
           {ht} / {wt}
           {hs} ({hometown})
@@ -509,34 +531,38 @@ if(total > 3){
       } else{
         text <-  glue(
           "
-          \U0001f6A8 {title} {predictor} ({acc}%) updates forecast for {year} {rank}-Star {pos} {name} from {og_school} to {new_school}
+          \U0001f6A8 {title} {predictor} ({acc}%) updates Rivals forecast for {year} {rank}-Star {pos} {name} from {og_school} to {new_school}
           
           {ht} / {wt}
           {hs} ({hometown})
           {link}
           ")
       }
-      
+      browser$close()
+      server$stop()
       post_tweet(
         status = text,
         media = NULL,
         token = token
       )
-      update <- data.frame(new_prediction = 1,
-                           predictor = predictor,
+      status <- data.frame(time = now,
+                           reg_connection = 1,
+                           nat_connection = 1,
+                           new_prediction = 1,
+                           forecaster = predictor,
                            prospect = name,
                            tweeted = 1,
                            text = text)
-      status <- bind_cols(status,update)
       log <- read.csv("~/Desktop/ActivityLogs/RivalsLog.csv") %>% mutate(time = ymd_hms(time))
       log <- bind_rows(log, status)
       write.csv(log,"~/Desktop/ActivityLogs/RivalsLog.csv",row.names = F)
       loginfo(glue("Tweet {row}/{total} posted"))
+      }
+    } else {
+      loginfo(glue("Did not have any FutureCasts to find expanded info for, returning empty dataframe"))
     }
-  } else {
-    loginfo(glue("Did not have any FutureCasts to find expanded info for, returning empty dataframe"))
   }
-}
+
 
 
 

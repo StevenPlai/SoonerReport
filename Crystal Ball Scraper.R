@@ -1,12 +1,15 @@
 library(rvest, warn.conflicts = F)
-library(tidyverse, quietly = T)
+library(dplyr, warn.conflicts = F)
+library(tidyr, warn.conflicts = F)
 library(rtweet, warn.conflicts = F)
 library(lubridate, warn.conflicts = F)
 library(glue, warn.conflicts = F)
 library(logging, warn.conflicts = F)
-source("~/desktop/Projects/Sooner Report/Repo/SoonerReport/Functions.R")
+source("~/Projects/SoonerReport/Functions.R")
 
-token <- read.csv("~/desktop/Projects/Sooner Report/Repo/SoonerReport/Token.csv") %>% convert_token()
+options(warn = -1)
+
+token <- read.csv("~/Projects/SoonerReport/Token.csv") %>% convert_token()
 
 loginfo("Beginning Scraping...")
 
@@ -184,7 +187,7 @@ if(nrow(new_ou>0)){
 write.csv(cb_list, "~/desktop/CBScraper/RunningCBList.csv",
           row.names = F)
 
-if(nrow(new_ou)>3) {
+if(nrow(new_ou)>5) {
   loginfo(glue("Found more than 3 new instances ({nrow(new_ou)}). Not tweeting"))
   status <- data.frame(time = now, 
                        connection = 1,
@@ -311,8 +314,7 @@ if(nrow(new_ou)>3) {
         token = token
       )
       status <- data.frame(time = now,
-                           reg_connection = 1,
-                           nat_connection = 1,
+                           connection = 1,
                            new_prediction = 1,
                            forecaster = predictor,
                            prospect = name,
@@ -328,3 +330,4 @@ if(nrow(new_ou)>3) {
   } 
   
 }
+
