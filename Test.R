@@ -48,15 +48,26 @@ posListRivals <- c("APB","ATH","C","CB","DT","DUAL","ILB","K","OG","OLB","OT","P
 
 listRivals <- data.frame()
 
-server <- phantomjs(port=4444L)
+server <- phantomjs(port=5555L)
 
-browser <- remoteDriver(browserName = "phantomjs", port=4444)
+browser <- remoteDriver(browserName = "phantomjs", port=5555)
 
 browser$open()
 
 for(p in posListRivals){
   
-  browser$navigate(glue("https://n.rivals.com/position_rankings/Football/2022/{p}"))
+  browser$navigate(glue("https://n.rivals.com/search#?formValues=%7B%22sport%22:%22Football%22,%22prospect_profiles.position_group_abbreviation%22:%5B%22{p}%22%5D,%22page_number%22:1,%22page_size%22:50,%22recruit_year%22:2022,%22sort%22:%7B%22prospect_profiles.stars%22:%7B%22order%22:%22desc%22%7D%7D%7D"))
+  
+  button <- browser$findElements(using="class",value="btn-primary")
+  
+  button <- button[[1]]
+  
+  button$clickElement()
+  
+  button <- browser$findElements(using="xpath",value='/html/body/main/div[2]/div[1]/div/div[5]/ul/li[9]/a')
+  button <- button[[1]]
+  
+  button$clickElement()
   
   df <- data.frame(fname = read_html(browser$getPageSource()[[1]]) %>% html_elements(".name-star") %>% 
                      html_elements("a") %>% html_elements(".first-name") %>% html_text() %>% 
@@ -72,6 +83,58 @@ for(p in posListRivals){
     listRivals <- bind_rows(listRivals,df)
 }
 
-browser$close()
+posListon3 <- c("ot","s","qb","rb","wr","te","iol","edge","dl","lb","cb","ath","k","p","ls")
 
-join <- full_join(list247,listRivals,by="name",suffix=c("247","Rivals"))
+listOn3 <- data.frame()
+
+for(p in posListon3){
+  
+  if(p=="ot"|p=="s"){
+    browser$navigate(glue("https://www.on3.com/db/rankings/consensus-player/football/2022/?position={p}"))
+    buttons <- browser$findElements(using="tag name",value="button")
+    buttons <- buttons[[6]]
+    buttons$clickElement()
+    buttons$clickElement()
+    buttons$clickElement()
+    Sys.sleep(25)
+    
+    df <- data.frame(name = read_html(browser$getPageSource()[[1]]) %>% html_elements(".PlayerList_name__2YV_C") %>% 
+                       html_elements("a") %>% html_text() %>% trimws(),
+                     id = read_html(browser$getPageSource()[[1]]) %>% html_elements(".PlayerList_name__2YV_C") %>% 
+                       html_elements("a") %>% html_attr("href") %>%
+                       str_extract_all("\\d+") %>% as.character())
+    print(c(p,nrow(df)))
+    listOn3 <- bind_rows(listOn3,df)
+  } else{
+    browser$navigate(glue("https://www.on3.com/db/rankings/consensus-player/football/2022/?position={p}"))
+    
+    l <- 6
+    while(l==6){
+      tryCatch(expr = {
+        buttons <- browser$findElements(using="tag name",value="button")
+        l <- length(buttons)
+        if(l==6){
+          buttons <- buttons[[6]]
+          buttons$clickElement()
+        }},
+        error = function(e){print("error")})
+    }
+    
+    df <- data.frame(name = read_html(browser$getPageSource()[[1]]) %>% html_elements(".PlayerList_name__2YV_C") %>% 
+                       html_elements("a") %>% html_text() %>% trimws(),
+                     id = read_html(browser$getPageSource()[[1]]) %>% html_elements(".PlayerList_name__2YV_C") %>% 
+                       html_elements("a") %>% html_attr("href") %>%
+                       str_extract_all("\\d+") %>% as.character(),
+                     p = p)
+    print(c(p,nrow(df)))
+    listOn3 <- bind_rows(listOn3,df)
+  }
+}
+
+browser$close()
+server$stop()
+
+join <- full_join(list247,listRivals,by="name",suffix=c("247","Rivals")) %>% 
+  full_join(listOn3,by="name") %>% rename("idOn3"=id)
+
+
