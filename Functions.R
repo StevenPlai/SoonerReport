@@ -81,6 +81,72 @@ convert_token <- function(x) {
   return(token)
 }
 
+#Compose Tweet Body for New On3 Prediction
+
+tweetOn3 <- function(x,titles,token){
+  for(i in 1:nrow(x)){
+    row <- x %>% slice(i) %>% left_join(offerlist,by=c("prospect"="name"))
+    name <<- row$prospect
+    predictor <- row$predictor
+    conf <- row$confidence
+    year <- row$year
+    plink <- row$link
+    
+    page <- read_html(glue("https://on3.com/{plink}"))
+    
+    objects <- page %>% html_elements(".MeasurementInfo_item__LDnHm")
+    info <- objects[[2]] %>% html_elements(".MuiTypography-root") 
+    info <- info[[2]] %>% html_text() %>% strsplit(split="/") %>% unlist() %>% 
+      as.character() %>% trimws()
+    pos <- info[1]
+    ht <- info[2]
+    wt <- info[3]
+    hs <- objects[[3]] %>% html_elements(".MuiTypography-root") 
+    hs <- hs[[2]] %>% html_text() %>% trimws()
+    htown <- objects[[4]] %>% html_elements(".MuiTypography-root") 
+    htown <- htown[[2]] %>% html_text() %>% trimws()
+    star <- page %>% html_elements(".StarRating_starWrapper__Ofuoa") %>% html_elements("a") %>% 
+      html_elements("span")
+    star <- star[[1]] %>% html_attr("aria-label") %>% substr(0,1)
+    
+    if(predictor %in% titles$name){
+      title <- left_join(as.data.frame(predictor),titles,by=c("predictor"="name")) %>% select(title) %>% as.character()
+      text <-  glue(
+        "
+          \U0001F52E New #Sooners On3 Prediction
+          
+          {year} {star}-Star {pos} {name}
+          {ht} / {wt}
+          {hs} ({htown})
+          
+          By: {title} {predictor}
+          Confidence: {conf}%
+          
+          https://on3.com/{plink}
+          ")
+    } else{
+      text <-  glue(
+        "
+          \U0001F52E New #Sooners On3 Prediction
+          
+          {year} {star}-Star {pos} {name}
+          {ht} / {wt}
+          {hs} ({htown})
+          
+          By: {predictor}
+          Confidence: {conf}%
+          
+          https://on3.com/{plink}
+          ")
+    }
+    #post_tweet(
+      #status = text,
+      #media = NULL,
+      #token = token
+    #)
+    print(text)
+  }}
+
 ##Find the current recruiting cycle based on system date
 
 rcycle <- function() {
