@@ -8,6 +8,12 @@ source("~/Projects/SoonerReport/Functions.R")
 
 min <- as.POSIXct(Sys.time(),tz="America/Chicago") %>% substr(16,16)
 
+titles <- data.frame(name = c("Chad Simmons","Jeremy Crabtree","Gerry Hamilton","Hudson Standish","Jeremy Birmingham",
+                              "Zack Carpenter","Justin Hopkins","Sam Spiegelman"),
+                     title = c("Director of Recruiting","Senior Recruiting Editor","Senior National Recruiting Analyst",
+                               "Texas Recruiting Analyst","Ohio State Recruiting Analyst","Ohio State Recruiting Reporter",
+                               "Oregon Publisher","National Recruiting Analyst"))
+
 if(min==0){
   now <- Sys.time() %>% ymd_hms()
   
@@ -97,68 +103,22 @@ if(min==0){
       log <- bind_rows(log, status)
       write.csv(log,"~/Desktop/ActivityLogs/On3Log.csv",row.names = F)
     } else{
-      post_message(glue("Found {nrow(new_ou)} New On3 Prediction(s)"), "StevenPlai", token=token)
+      post_message(glue("Found New On3 Prediction for {name}"), "StevenPlai", token=token)
       full_list <- bind_rows(full_list,new_ou)  
       write.csv(full_list, "~/Desktop/On3Scraper/FullO3List.csv", row.names = F)
-      for(i in nrow(new_ou)){
-        row <- new_ou %>% slice(i) %>% left_join(offerlist,by=c("prospect"="name"))
-        name <- row$prospect
-        predictor <- row$predictor
-        conf <- row$confidence
-        year <- row$year
-        plink <- row$link
-        
-        page <- read_html(glue("https://on3.com/{plink}"))
-        
-        objects <- page %>% html_elements(".MeasurementInfo_item__LDnHm")
-        info <- objects[[2]] %>% html_elements(".MuiTypography-root") 
-        info <- info[[2]] %>% html_text() %>% strsplit(split="/") %>% unlist() %>% 
-          as.character() %>% trimws()
-        pos <- info[1]
-        ht <- info[2]
-        wt <- info[3]
-        hs <- objects[[3]] %>% html_elements(".MuiTypography-root") 
-        hs <- hs[[2]] %>% html_text() %>% trimws()
-        htown <- objects[[4]] %>% html_elements(".MuiTypography-root") 
-        htown <- htown[[2]] %>% html_text() %>% trimws()
-        star <- page %>% html_elements(".StarRating_starWrapper__Ofuoa") %>% html_elements("a") %>% 
-          html_elements("span")
-        star <- star[[1]] %>% html_attr("aria-label") %>% substr(0,1)
-        
-        text <-  glue(
-          "
-          \U0001F52E New #Sooners On3 Prediction
-          
-          {year} {star}-Star {pos} {name}
-          {ht} / {wt}
-          {hs} ({htown})
-          
-          By: {predictor}
-          Confidence: {conf}%
-          
-          https://on3.com/{plink}
-          ")
-        post_tweet(
-          status = text,
-          media = NULL,
-          token = token
-        )
-        status <- data.frame(time = now,
+      
+      tweetOn3(new_ou,titles,token)
+      
+      status <- data.frame(time = now,
                              connection = 1,
                              new_prediction = 1,
                              forecaster = predictor,
                              prospect = name,
                              tweeted = 1,
                              text = text)
-        log <- read.csv("~/Desktop/ActivityLogs/On3Log.csv") %>% mutate(time = ymd_hms(time))
-        log <- bind_rows(log, status)
-        write.csv(log,"~/Desktop/ActivityLogs/On3Log.csv",row.names = F)
+      log <- read.csv("~/Desktop/ActivityLogs/On3Log.csv") %>% mutate(time = ymd_hms(time))
+      log <- bind_rows(log, status)
+      write.csv(log,"~/Desktop/ActivityLogs/On3Log.csv",row.names = F)
       }
     }
   }
-}
-
-
-
-
-

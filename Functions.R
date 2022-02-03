@@ -139,12 +139,11 @@ tweetOn3 <- function(x,titles,token){
           https://on3.com/{plink}
           ")
     }
-    #post_tweet(
-      #status = text,
-      #media = NULL,
-      #token = token
-    #)
-    print(text)
+    post_tweet(
+      status = text,
+      media = NULL,
+      token = token
+    )
   }}
 
 ##Find the current recruiting cycle based on system date
